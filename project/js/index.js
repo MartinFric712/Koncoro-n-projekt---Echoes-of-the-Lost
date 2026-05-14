@@ -10,7 +10,7 @@ const MAP_ROWS = 28
 const MAP_COLS = 28
 const MAP_WIDTH = 16 * MAP_COLS
 const MAP_HEIGHT = 16 * MAP_ROWS
-const MAP_SCALE = dpr + 3
+const MAP_SCALE = dpr + 2
 const VIEWPORT_HEIGHT = canvas.height / MAP_SCALE
 const VIEWPORT_WIDTH = canvas.width / MAP_SCALE
 const VIEWPORT_CENTER_X = VIEWPORT_WIDTH / 2
@@ -170,6 +170,54 @@ const player = new Player({
   size: 15,
 })
 
+const monsterSprites = {
+  walkDown: {
+    x: 0,
+    y: 0,
+    width: 16,
+    height: 16,
+    FrameCount: 4,
+  },
+  walkUp: {
+    x: 16,
+    y: 0,
+    width: 16,
+    height: 16,
+    FrameCount: 4,
+  }
+  , walkRight: {
+    x: 48,
+    y: 0,
+    width: 16,
+    height: 16,
+    FrameCount: 4,
+  },
+  walkLeft: {
+    x: 32,
+    y: 0,
+    width: 16,
+    height: 16,
+    FrameCount: 4,
+  },
+}
+
+const monsters = [
+  new Monster({
+    x: 200,
+    y: 150,
+    size: 15,
+    imageSrc: './images/Bamboo.png',
+    sprites: monsterSprites,
+  }),
+  new Monster({
+    x: 300,
+    y: 150,
+    size: 15,
+    imageSrc: './images/Dragon.png',
+    sprites: monsterSprites,
+  }),
+]
+
 const keys = {
   w: {
     pressed: false,
@@ -210,6 +258,14 @@ function animate(backgroundCanvas) {
   c.drawImage(backgroundCanvas, 0, 0, mapWidthPx, mapHeightPx)
   drawAnimatedTiles(c, currentTime)
   player.draw(c)
+
+  // render out our monsters
+  for (let i = monsters.length - 1; i >= 0; i--) {
+    const monster = monsters[i]
+    monster.update(deltaTime, collisionBlocks)
+    monster.draw(c)
+  }
+
   c.drawImage(frontRendersCanvas, 0, 0, mapWidthPx, mapHeightPx)
 
   c.restore()
