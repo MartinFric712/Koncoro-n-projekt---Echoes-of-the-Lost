@@ -8,7 +8,7 @@ canvas.height = 576 * dpr
 
 const MAP_ROWS = 28
 const MAP_COLS = 28
-const MAP_WIDTH = 16 * MAP_COLS 
+const MAP_WIDTH = 16 * MAP_COLS
 const MAP_HEIGHT = 16 * MAP_ROWS
 const MAP_SCALE = dpr + 3
 const VIEWPORT_HEIGHT = canvas.height / MAP_SCALE
@@ -19,19 +19,22 @@ const MAX_SCROLL_X = MAP_WIDTH - VIEWPORT_WIDTH
 const MAX_SCROLL_Y = MAP_HEIGHT - VIEWPORT_HEIGHT
 
 const layersData = {
-   l_Terrain: l_Terrain,
-   l_Front_Renders: l_Front_Renders,
-   l_Trees_1: l_Trees_1,
-   l_Trees_2: l_Trees_2,
-   l_Trees_3: l_Trees_3,
-   l_Trees_4: l_Trees_4,
-   l_Landscape_Decorations: l_Landscape_Decorations,
-   l_Landscape_Decorations_2: l_Landscape_Decorations_2,
-   l_Houses: l_Houses,
-   l_House_Decorations: l_House_Decorations,
-   l_Characters: l_Characters,
-   l_Collisions: l_Collisions,
+  l_Terrain: l_Terrain,
+  l_Trees_1: l_Trees_1,
+  l_Trees_2: l_Trees_2,
+  l_Trees_3: l_Trees_3,
+  l_Trees_4: l_Trees_4,
+  l_Landscape_Decorations: l_Landscape_Decorations,
+  l_Landscape_Decorations_2: l_Landscape_Decorations_2,
+  l_Houses: l_Houses,
+  l_House_Decorations: l_House_Decorations,
+  l_Characters: l_Characters,
+  l_Collisions: l_Collisions,
 };
+
+const frontRendersLayersData = {
+  l_Front_Renders: l_Front_Renders,
+}
 
 const tilesets = {
   l_Terrain: { imageUrl: './images/terrain.png', tileSize: 16, animations: [] },
@@ -95,7 +98,7 @@ const renderLayer = (tilesData, tilesetImage, tileSize, context, skipSymbols) =>
   })
 }
 
-const renderStaticLayers = async () => {
+const renderStaticLayers = async (layersData) => {
   const offscreenCanvas = document.createElement('canvas')
   offscreenCanvas.width = Math.max(mapWidthPx * dpr, 1)
   offscreenCanvas.height = Math.max(mapHeightPx * dpr, 1)
@@ -183,6 +186,7 @@ const keys = {
 }
 
 let lastTime = performance.now()
+let frontRendersCanvas
 function animate(backgroundCanvas) {
   // Calculate delta time
   const currentTime = performance.now()
@@ -201,11 +205,13 @@ function animate(backgroundCanvas) {
   // Render scene
   c.save()
   c.scale(MAP_SCALE, MAP_SCALE)
-  c.translate(-horizontalScrollDistance,-verticalScrollDistance)
+  c.translate(-horizontalScrollDistance, -verticalScrollDistance)
   c.clearRect(0, 0, canvas.width, canvas.height)
   c.drawImage(backgroundCanvas, 0, 0, mapWidthPx, mapHeightPx)
   drawAnimatedTiles(c, currentTime)
   player.draw(c)
+  c.drawImage(frontRendersCanvas, 0, 0, mapWidthPx, mapHeightPx)
+
   c.restore()
 
   requestAnimationFrame(() => animate(backgroundCanvas))
@@ -213,7 +219,8 @@ function animate(backgroundCanvas) {
 
 const startRendering = async () => {
   try {
-    const backgroundCanvas = await renderStaticLayers()
+    const backgroundCanvas = await renderStaticLayers(layersData)
+    frontRendersCanvas = await renderStaticLayers(frontRendersLayersData)
     if (!backgroundCanvas) {
       console.error('Failed to create the background canvas')
       return
