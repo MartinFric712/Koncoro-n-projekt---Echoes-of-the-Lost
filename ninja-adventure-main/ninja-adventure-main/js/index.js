@@ -2,16 +2,17 @@ const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d')
 const dpr = window.devicePixelRatio || 1
 
-canvas.width = 1024 * dpr
-canvas.height = 576 * dpr
+canvas.width = window.innerWidth * dpr
+canvas.height = window.innerHeight * dpr
 
 const MAP_ROWS = 28
 const MAP_COLS = 28
 
-const MAP_WIDTH = 16 * MAP_COLS
-const MAP_HEIGHT = 16 * MAP_ROWS
+const MAP_WIDTH = 16 * MAP_COLS   // 448px
+const MAP_HEIGHT = 16 * MAP_ROWS  // 448px
 
-const MAP_SCALE = dpr + 2
+// Scale so the map fills the screen (pick whichever axis fits tighter)
+const MAP_SCALE = Math.max(canvas.width / MAP_WIDTH, canvas.height / MAP_HEIGHT)
 
 const VIEWPORT_WIDTH = canvas.width / MAP_SCALE
 const VIEWPORT_HEIGHT = canvas.height / MAP_SCALE

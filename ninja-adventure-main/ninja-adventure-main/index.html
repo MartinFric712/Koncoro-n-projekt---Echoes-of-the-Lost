@@ -7,14 +7,17 @@
     font: inherit;
     vertical-align: baseline;
   }
+
+  canvas {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+  }
+
   body {
     background: black;
     margin: 0;
-  }
-
-  canvas {
-    width: 1024px;
-    height: 576px;
+    overflow: hidden;
   }
 </style>
 <canvas style="image-rendering: pixelated"></canvas>
