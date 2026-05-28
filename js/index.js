@@ -30,8 +30,24 @@ let menuHasGame = false
 let menuBlinkTime = 0
 let hoveredButton = -1
 
+// Inventory
+let inventory = []
+let inventoryOpen = false
+let selectedSlot  = -1
+let hoveredSlot   = -1
+let invUseBtn     = null
+let invDiscardBtn = null
+
+const ITEM_DATA = {
+  hp_potion: { name: 'Lektvar HP',  desc: 'Obnoví 1 srdce. Vzácny nápoj z bylín.', usable: true  },
+  coin:      { name: 'Zlatá minca', desc: 'Platidlo kráľovstva. Zbieraj ich!',       usable: false },
+  key:       { name: 'Tajný kľúč',  desc: 'Otvára skryté dvere v lese.',              usable: false },
+  gem:       { name: 'Drahokam',    desc: 'Vzácny kameň z lesa.',                     usable: false },
+}
+
 const BUTTONS = ['NOVÁ HRA', 'POKRAČOVAŤ', 'NASTAVENIA', 'KONIEC']
 const menuPetals = []
+let menuBg = null
 
 // ─── Map configs ──────────────────────────────────────────────────────────────
 
@@ -83,7 +99,7 @@ const mapConfigs = {
     },
     spawnPoints: {
       default:    { x: 100, y: 100 },
-      fromForest: { x: 50,  y: 300, facing: 'right' },
+      fromForest: { x: 380, y: 80, facing: 'down' },
     },
     exits: [
       { x: 376, y: 16, width: 48, height: 32, targetMap: 'map2', targetSpawn: 'fromVillage' },
@@ -95,6 +111,20 @@ const mapConfigs = {
       { x: 288, y: 416, size: 15, imageSrc: './images/bamboo.png',  sprites: monsterSprites },
       { x: 112, y: 416, size: 15, imageSrc: './images/dragon.png',  sprites: monsterSprites },
       { x: 400, y: 400, size: 15, imageSrc: './images/dragon.png',  sprites: monsterSprites },
+    ],
+    items: [
+      { type: 'hp_potion', x: 180, y: 200 },
+      { type: 'hp_potion', x: 320, y: 150 },
+      { type: 'hp_potion', x: 300, y: 250 },
+      { type: 'hp_potion', x: 420, y: 320 },
+      { type: 'coin',      x: 250, y: 300 },
+      { type: 'coin',      x: 400, y: 180 },
+      { type: 'coin',      x: 160, y: 290 },
+      { type: 'coin',      x: 380, y: 400 },
+      { type: 'coin',      x: 200, y: 420 },
+      { type: 'key',       x: 150, y: 350 },
+      { type: 'key',       x: 340, y: 180 },
+      { type: 'gem',       x: 280, y: 350 },
     ],
   },
   map2: {
@@ -126,9 +156,26 @@ const mapConfigs = {
       fromVillage: { x: 400, y: 500 },
     },
     exits: [
-      { x: 0, y: 300, width: 16, height: 64, targetMap: 'map1', targetSpawn: 'fromForest' },
+      { x: 0,   y: 300, width: 16, height: 64, targetMap: 'map1', targetSpawn: 'fromForest' },
+      { x: 780, y: 300, width: 16, height: 48, targetMap: 'map1', targetSpawn: 'fromForest' },
     ],
-    monsters: [],
+    monsters: [
+      { x: 200, y: 200, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 350, y: 180, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 500, y: 300, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 280, y: 400, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 450, y: 450, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 150, y: 350, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 600, y: 250, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+    ],
+    items: [
+      { type: 'hp_potion', x: 200, y: 300 },
+      { type: 'hp_potion', x: 450, y: 400 },
+      { type: 'coin',      x: 300, y: 250 },
+      { type: 'coin',      x: 500, y: 350 },
+      { type: 'gem',       x: 350, y: 450 },
+      { type: 'gem',       x: 250, y: 500 },
+    ],
   },
 }
 
@@ -193,6 +240,8 @@ const hearts = [
 ]
 
 const leafs = []
+let currentMapItems = []
+let worldTime = 0
 
 // ─── loadMap ───────────────────────────────────────────────────────────────────
 
@@ -245,7 +294,9 @@ const loadMap = async (mapName, spawnName) => {
   }
 
   leafs.length = 0
+  currentMapItems = (config.items ?? []).map(item => ({ ...item }))
   elapsedTime = 0
+  worldTime = 0
   lastTime = performance.now()
 }
 
@@ -264,7 +315,7 @@ function initMenuPetals() {
   menuPetals.length = 0
   const W = canvas.width / dpr
   const H = canvas.height / dpr
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i < 30; i++) {
     menuPetals.push({
       x: Math.random() * W,
       y: Math.random() * H,
@@ -281,17 +332,13 @@ function initMenuPetals() {
 function getButtonRects() {
   const W = canvas.width / dpr
   const H = canvas.height / dpr
-  const panelX = W * 0.52
-  const panelW = W * 0.43
-  const panelH = H * 0.68
-  const panelY = (H - panelH) / 2
-  const btnW = panelW - 48
-  const btnH = Math.min(54, panelH * 0.18)
-  const btnX = panelX + 24
-  const totalBtnsH = BUTTONS.length * btnH + (BUTTONS.length - 1) * 16
-  let startY = panelY + (panelH - totalBtnsH) / 2
+  const BTN_W = Math.floor(W * 0.24)
+  const BTN_H = 68
+  const BTN_GAP = 16
+  const startX = W * 0.635
+  const startY = H * 0.57
   return BUTTONS.map((_, i) => ({
-    x: btnX, y: startY + i * (btnH + 16), w: btnW, h: btnH,
+    x: startX, y: startY + i * (BTN_H + BTN_GAP), w: BTN_W, h: BTN_H,
   }))
 }
 
@@ -348,6 +395,341 @@ function drawTorii(ctx, cx, topY, h) {
   ctx.fillRect(leftX + pillarW / 2, topY + h * 0.28, gap - pillarW, 7)
 }
 
+// ─── Inventory ─────────────────────────────────────────────────────────────────
+
+function getInvLayout() {
+  const W = canvas.width / dpr
+  const H = canvas.height / dpr
+  const PW = W * 0.80
+  const PH = H * 0.80
+  const PX = (W - PW) / 2
+  const PY = (H - PH) / 2
+  const PAD = 20
+  const LEFT_W  = PW * 0.30
+  const MID_W   = PW * 0.45
+  const RIGHT_W = PW * 0.25
+  const BAR_H   = 36
+  const CONTENT_Y = PY + PAD
+  const CONTENT_H = PH - PAD * 2 - BAR_H
+  return { W, H, PW, PH, PX, PY, PAD, LEFT_W, MID_W, RIGHT_W, BAR_H, CONTENT_Y, CONTENT_H }
+}
+
+function getInvSlotRects() {
+  const { PX, PY, PAD, LEFT_W, MID_W, CONTENT_Y } = getInvLayout()
+  const COLS = 6, ROWS = 4, SLOT = 64, GAP = 10
+  const midContentX = PX + LEFT_W + PAD
+  const midContentW = MID_W - PAD * 2
+  const gridW = COLS * SLOT + (COLS - 1) * GAP
+  const gx = midContentX + (midContentW - gridW) / 2
+  const gy = CONTENT_Y + 32
+  const rects = []
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      rects.push({
+        x: gx + col * (SLOT + GAP),
+        y: gy + row * (SLOT + GAP),
+        w: SLOT, h: SLOT,
+        idx: row * COLS + col,
+      })
+    }
+  }
+  return rects
+}
+
+function drawItemIcon(ctx, type, cx, cy, size) {
+  const s = size / 2
+  ctx.save()
+  switch (type) {
+    case 'hp_potion':
+      ctx.fillStyle = '#ff3333'
+      ctx.beginPath()
+      ctx.arc(cx - s * 0.28, cy - s * 0.05, s * 0.42, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(cx + s * 0.28, cy - s * 0.05, s * 0.42, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.moveTo(cx - s * 0.70, cy + s * 0.05)
+      ctx.lineTo(cx, cy + s * 0.90)
+      ctx.lineTo(cx + s * 0.70, cy + s * 0.05)
+      ctx.closePath()
+      ctx.fill()
+      break
+    case 'coin':
+      ctx.fillStyle = '#ffd700'
+      ctx.beginPath()
+      ctx.arc(cx, cy, s * 0.75, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#7a5900'
+      ctx.font = `bold ${Math.floor(s * 1.0)}px monospace`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('G', cx, cy)
+      ctx.textBaseline = 'alphabetic'
+      break
+    case 'key':
+      ctx.fillStyle = '#ffd700'
+      ctx.beginPath()
+      ctx.arc(cx, cy - s * 0.28, s * 0.38, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#0d0620'
+      ctx.beginPath()
+      ctx.arc(cx, cy - s * 0.28, s * 0.18, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#ffd700'
+      ctx.fillRect(cx - s * 0.11, cy - s * 0.02, s * 0.22, s * 0.85)
+      ctx.fillRect(cx + s * 0.11, cy + s * 0.35, s * 0.22, s * 0.15)
+      ctx.fillRect(cx + s * 0.11, cy + s * 0.55, s * 0.18, s * 0.12)
+      break
+    case 'gem':
+      ctx.fillStyle = '#aa44ff'
+      ctx.beginPath()
+      ctx.moveTo(cx,           cy - s * 0.85)
+      ctx.lineTo(cx + s * 0.6, cy - s * 0.2)
+      ctx.lineTo(cx + s * 0.5, cy + s * 0.8)
+      ctx.lineTo(cx - s * 0.5, cy + s * 0.8)
+      ctx.lineTo(cx - s * 0.6, cy - s * 0.2)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'
+      ctx.beginPath()
+      ctx.moveTo(cx,            cy - s * 0.85)
+      ctx.lineTo(cx + s * 0.6,  cy - s * 0.2)
+      ctx.lineTo(cx,            cy - s * 0.2)
+      ctx.closePath()
+      ctx.fill()
+      break
+  }
+  ctx.restore()
+}
+
+function wrapText(ctx, text, x, y, maxW, lineH) {
+  const words = text.split(' ')
+  let line = ''
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word
+    if (ctx.measureText(test).width > maxW && line) {
+      ctx.fillText(line, x, y)
+      line = word
+      y += lineH
+    } else {
+      line = test
+    }
+  }
+  if (line) ctx.fillText(line, x, y)
+}
+
+function useSelectedItem() {
+  if (selectedSlot < 0 || selectedSlot >= inventory.length) return
+  const item = inventory[selectedSlot]
+  if (item.type === 'hp_potion') {
+    const empty = hearts.find(h => h.currentFrame === 0)
+    if (empty) {
+      empty.currentFrame = 4
+      inventory.splice(selectedSlot, 1)
+      selectedSlot = Math.min(selectedSlot, inventory.length - 1)
+    }
+  } else if (item.type === 'coin') {
+    console.log('coin: +1 gold')
+  } else if (item.type === 'key') {
+    console.log('key collected')
+  }
+}
+
+function discardSelectedItem() {
+  if (selectedSlot < 0 || selectedSlot >= inventory.length) return
+  inventory.splice(selectedSlot, 1)
+  selectedSlot = Math.min(selectedSlot, inventory.length - 1)
+}
+
+function drawInventory() {
+  const { W, H, PW, PH, PX, PY, PAD, LEFT_W, MID_W, RIGHT_W, BAR_H, CONTENT_Y, CONTENT_H } = getInvLayout()
+
+  c.save()
+  c.scale(dpr, dpr)
+
+  // Dark fullscreen overlay
+  c.fillStyle = 'rgba(0,0,0,0.85)'
+  c.fillRect(0, 0, W, H)
+
+  // Panel
+  c.fillStyle = '#1a0a2e'
+  c.fillRect(PX, PY, PW, PH)
+  c.strokeStyle = '#8b6914'
+  c.lineWidth = 4
+  c.strokeRect(PX, PY, PW, PH)
+
+  // Corner decorations
+  const CD = 14
+  c.fillStyle = '#ffd700'
+  c.fillRect(PX,          PY,          CD, CD)
+  c.fillRect(PX + PW - CD, PY,          CD, CD)
+  c.fillRect(PX,          PY + PH - CD, CD, CD)
+  c.fillRect(PX + PW - CD, PY + PH - CD, CD, CD)
+
+  // Section dividers
+  const divX1 = PX + LEFT_W
+  const divX2 = PX + LEFT_W + MID_W
+  c.strokeStyle = '#3a2a6e'
+  c.lineWidth = 1
+  ;[divX1, divX2].forEach(dx => {
+    c.beginPath(); c.moveTo(dx, PY + 10); c.lineTo(dx, PY + PH - BAR_H); c.stroke()
+  })
+
+  // ── LEFT: Character Info ─────────────────────────────────────────────────
+  const lx = PX + PAD
+  const lCX = PX + LEFT_W / 2
+
+  c.fillStyle = '#ffd700'
+  c.font = 'bold 14px monospace'
+  c.textAlign = 'center'
+  c.fillText('HRDINA', lCX, CONTENT_Y + 20)
+
+  // Player sprite placeholder
+  const sprX = lCX - 32
+  const sprY = CONTENT_Y + 28
+  c.fillStyle = '#2a1a4e'
+  c.fillRect(sprX, sprY, 64, 64)
+  c.strokeStyle = '#8b6914'
+  c.lineWidth = 2
+  c.strokeRect(sprX, sprY, 64, 64)
+  if (player.loaded) {
+    c.drawImage(player.image,
+      player.currentSprite.x, player.currentSprite.y + 0.5, 16, 16,
+      sprX + 8, sprY + 8, 48, 48)
+  }
+
+  c.fillStyle = '#fff'
+  c.font = 'bold 13px monospace'
+  c.textAlign = 'center'
+  c.fillText('ECHOES', lCX, sprY + 80)
+
+  // HP hearts
+  const hpY = sprY + 96
+  const HS = 14, HGAP = 18
+  const heartStartX = lCX - (hearts.length * HGAP) / 2 + HGAP / 2 - HS / 2
+  hearts.forEach((heart, i) => {
+    const hx = heartStartX + i * HGAP
+    const filled = heart.currentFrame === 4
+    c.fillStyle = filled ? '#ff3333' : '#331111'
+    c.beginPath(); c.arc(hx + HS * 0.28, hpY + HS * 0.3, HS * 0.28, 0, Math.PI * 2); c.fill()
+    c.beginPath(); c.arc(hx + HS * 0.72, hpY + HS * 0.3, HS * 0.28, 0, Math.PI * 2); c.fill()
+    c.beginPath(); c.moveTo(hx, hpY + HS * 0.45); c.lineTo(hx + HS / 2, hpY + HS); c.lineTo(hx + HS, hpY + HS * 0.45); c.closePath(); c.fill()
+  })
+
+  // Stats
+  c.fillStyle = '#fff'
+  c.font = 'bold 12px monospace'
+  c.textAlign = 'left'
+  ;['⚔ Utok:       15', '🛡 Obrana:      5', '💨 Rychlost:  10', '⭐ Level:       1'].forEach((s, i) => {
+    c.fillText(s, lx, hpY + 26 + i * 22)
+  })
+
+  // ── MIDDLE: Items Grid ───────────────────────────────────────────────────
+  const midCX = divX1 + MID_W / 2
+
+  c.fillStyle = '#ffd700'
+  c.font = 'bold 14px monospace'
+  c.textAlign = 'center'
+  c.fillText('INVENTÁR', midCX, CONTENT_Y + 20)
+
+  const SLOT = 64
+  getInvSlotRects().forEach(slot => {
+    const isHover = hoveredSlot === slot.idx
+    const isSel   = selectedSlot === slot.idx
+    const hasItem = slot.idx < inventory.length
+
+    c.fillStyle = '#0d0620'
+    c.fillRect(slot.x, slot.y, SLOT, SLOT)
+    c.strokeStyle = isSel ? '#ffd700' : (isHover ? '#aa8800' : '#3a2a6e')
+    c.lineWidth   = isSel ? 2.5 : (isHover ? 2 : 1)
+    c.strokeRect(slot.x, slot.y, SLOT, SLOT)
+
+    if (hasItem) {
+      const item = inventory[slot.idx]
+      drawItemIcon(c, item.type, slot.x + SLOT / 2, slot.y + SLOT / 2, 36)
+      c.fillStyle = '#666'
+      c.font = '9px monospace'
+      c.textAlign = 'right'
+      c.fillText(slot.idx + 1, slot.x + SLOT - 3, slot.y + SLOT - 3)
+    }
+  })
+
+  // ── RIGHT: Item Detail ───────────────────────────────────────────────────
+  const rx = divX2 + PAD
+  const rw = RIGHT_W - PAD * 2
+  const rCX = divX2 + RIGHT_W / 2
+
+  c.fillStyle = '#ffd700'
+  c.font = 'bold 14px monospace'
+  c.textAlign = 'center'
+  c.fillText('DETAIL', rCX, CONTENT_Y + 20)
+
+  invUseBtn = null
+  invDiscardBtn = null
+
+  const selItem = selectedSlot >= 0 && selectedSlot < inventory.length ? inventory[selectedSlot] : null
+  if (selItem) {
+    const data = ITEM_DATA[selItem.type] ?? { name: selItem.type, desc: '', usable: false }
+
+    const iconY = CONTENT_Y + 36
+    drawItemIcon(c, selItem.type, rCX, iconY + 24, 48)
+
+    c.fillStyle = '#fff'
+    c.font = 'bold 15px monospace'
+    c.textAlign = 'center'
+    c.fillText(data.name, rCX, iconY + 72)
+
+    c.fillStyle = '#aaa'
+    c.font = '11px monospace'
+    c.textAlign = 'left'
+    wrapText(c, data.desc, rx, iconY + 92, rw, 16)
+
+    const btnW = Math.min(rw, 120)
+    const btnX = rCX - btnW / 2
+    const btnH = 28
+    const btn1Y = CONTENT_Y + CONTENT_H - 68
+    const btn2Y = CONTENT_Y + CONTENT_H - 32
+
+    if (data.usable) {
+      invUseBtn = { x: btnX, y: btn1Y, w: btnW, h: btnH }
+      c.fillStyle = '#1a5c1a'
+      c.fillRect(btnX, btn1Y, btnW, btnH)
+      c.strokeStyle = '#44cc44'; c.lineWidth = 1.5
+      c.strokeRect(btnX, btn1Y, btnW, btnH)
+      c.fillStyle = '#44cc44'
+      c.font = 'bold 12px monospace'; c.textAlign = 'center'
+      c.fillText('POUZIT', btnX + btnW / 2, btn1Y + 19)
+    }
+
+    invDiscardBtn = { x: btnX, y: btn2Y, w: btnW, h: btnH }
+    c.fillStyle = '#5c1a1a'
+    c.fillRect(btnX, btn2Y, btnW, btnH)
+    c.strokeStyle = '#cc4444'; c.lineWidth = 1.5
+    c.strokeRect(btnX, btn2Y, btnW, btnH)
+    c.fillStyle = '#cc4444'
+    c.font = 'bold 12px monospace'; c.textAlign = 'center'
+    c.fillText('ZAHODIT', btnX + btnW / 2, btn2Y + 19)
+  } else {
+    c.fillStyle = '#555'
+    c.font = '12px monospace'
+    c.textAlign = 'center'
+    c.fillText('Vyber item', rCX, CONTENT_Y + 60)
+  }
+
+  // ── Bottom bar ───────────────────────────────────────────────────────────
+  c.fillStyle = '#111'
+  c.fillRect(PX, PY + PH - BAR_H, PW, BAR_H)
+  c.strokeStyle = '#3a2a6e'; c.lineWidth = 1
+  c.beginPath(); c.moveTo(PX, PY + PH - BAR_H); c.lineTo(PX + PW, PY + PH - BAR_H); c.stroke()
+  c.fillStyle = '#777'
+  c.font = '11px monospace'; c.textAlign = 'center'
+  c.fillText('[ I / ESC ] Zavriet   [ Klik ] Vybrat   [ U ] Pouzit', W / 2, PY + PH - BAR_H + 22)
+
+  c.textAlign = 'left'
+  c.restore()
+}
+
 // ─── Screen draw functions ─────────────────────────────────────────────────────
 
 function drawMenu(deltaTime) {
@@ -358,24 +740,13 @@ function drawMenu(deltaTime) {
   c.save()
   c.scale(dpr, dpr)
 
-  // Background gradient
-  const bg = c.createLinearGradient(0, 0, 0, H)
-  bg.addColorStop(0, '#1a0a2e')
-  bg.addColorStop(1, '#2d1b4e')
-  c.fillStyle = bg
-  c.fillRect(0, 0, W, H)
+  // Background image — full device-pixel canvas
+  c.restore()
+  c.drawImage(menuBg, 0, 0, canvas.width, canvas.height)
+  c.save()
+  c.scale(dpr, dpr)
 
-  // Sakura trees
-  drawSakuraTree(c, W * 0.08, H, 16, H * 0.28, H * 0.12)
-  drawSakuraTree(c, W * 0.38, H, 12, H * 0.18, H * 0.09)
-
-  // Torii gate
-  const toriiCX = W * 0.22
-  const toriiTop = H * 0.3
-  const toriiH = H * 0.38
-  drawTorii(c, toriiCX, toriiTop, toriiH)
-
-  // Petals
+  // Sakura petals
   for (const p of menuPetals) {
     p.x += p.vx
     p.y += p.vy
@@ -392,58 +763,40 @@ function drawMenu(deltaTime) {
     c.restore()
   }
 
-  // Title
-  const titleX = W * 0.04
-  const titleY = toriiTop - H * 0.04
-  const titleSize = Math.max(28, Math.floor(H * 0.072))
-  c.shadowColor = '#000'
-  c.shadowOffsetX = 4
-  c.shadowOffsetY = 4
-  c.shadowBlur = 0
-  c.fillStyle = '#ffd700'
-  c.font = `bold ${titleSize}px monospace`
-  c.fillText('ECHOES OF', titleX, titleY)
-  c.fillText('THE LOST', titleX, titleY + titleSize * 1.2)
-  c.shadowColor = 'transparent'
-
-  // Blink subtitle
+  // Blink "any key" hint
   const blinkA = (Math.sin(menuBlinkTime * 3) + 1) / 2
   c.globalAlpha = 0.35 + blinkA * 0.65
   c.fillStyle = '#e8d5ff'
-  c.font = `bold ${Math.max(12, Math.floor(H * 0.024))}px monospace`
-  c.fillText('Stlač ľubovoľný kláves', titleX, titleY + titleSize * 2.6)
+  c.font = `bold ${Math.max(10, Math.floor(H * 0.022))}px 'Press Start 2P', monospace`
+  c.textAlign = 'center'
+  c.fillText('Stlač ľubovoľný kláves', W * 0.27, H * 0.88)
+  c.textAlign = 'left'
   c.globalAlpha = 1
 
-  // Menu panel
-  const panelX = W * 0.52
-  const panelW = W * 0.43
-  const panelH = H * 0.68
-  const panelY = (H - panelH) / 2
-  roundedRect(c, panelX, panelY, panelW, panelH, 14)
-  c.fillStyle = 'rgba(20, 10, 40, 0.88)'
-  c.fill()
-  c.strokeStyle = '#8b6914'
-  c.lineWidth = 3
-  c.stroke()
+  // Buttons — transparent, text only over image planks
+  const BTN_W = Math.floor(W * 0.24)
+  const BTN_H = 68
+  const BTN_GAP = 16
+  const btnStartX = W * 0.635
+  const btnStartY = H * 0.57
 
-  // Buttons
-  const btnSize = Math.max(14, Math.floor(H * 0.033))
-  c.font = `bold ${btnSize}px monospace`
-  getButtonRects().forEach((btn, i) => {
+  BUTTONS.forEach((label, i) => {
+    const bx = btnStartX
+    const by = btnStartY + i * (BTN_H + BTN_GAP)
     const isHover = hoveredButton === i
     const isDisabled = i === 1 && !menuHasGame
-    roundedRect(c, btn.x, btn.y, btn.w, btn.h, 8)
-    c.fillStyle = isDisabled ? '#2a1508' : (isHover ? '#7a4520' : '#5c3317')
-    c.fill()
-    if (!isDisabled) {
-      c.strokeStyle = isHover ? '#ffd700' : '#8b6914'
-      c.lineWidth = isHover ? 2.5 : 1.5
-      c.stroke()
-    }
-    c.fillStyle = isDisabled ? '#555' : '#fff'
+
+    const fontSize = isHover && !isDisabled ? 26 : 24
+    c.font = `bold ${fontSize}px monospace`
+    c.shadowColor = '#000'
+    c.shadowOffsetX = 2
+    c.shadowOffsetY = 2
+    c.shadowBlur = 0
+    c.fillStyle = isDisabled ? '#666' : (isHover ? '#ffd700' : '#fff')
     c.textAlign = 'center'
-    c.fillText(BUTTONS[i], btn.x + btn.w / 2, btn.y + btn.h * 0.62)
+    c.fillText(label, bx + BTN_W / 2, by + BTN_H * 0.62)
   })
+  c.shadowColor = 'transparent'
   c.textAlign = 'left'
 
   c.restore()
@@ -584,14 +937,19 @@ function handleButtonClick(index) {
 // ─── Input events ──────────────────────────────────────────────────────────────
 
 canvas.addEventListener('mousemove', (e) => {
-  if (gameState !== 'menu') {
-    hoveredButton = -1
-    return
-  }
   const rect = canvas.getBoundingClientRect()
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top
-  const prev = hoveredButton
+
+  if (gameState === 'playing' && inventoryOpen) {
+    hoveredSlot = getInvSlotRects().findIndex(
+      s => mx >= s.x && mx <= s.x + s.w && my >= s.y && my <= s.y + s.h
+    )
+    canvas.style.cursor = hoveredSlot >= 0 ? 'pointer' : 'default'
+    return
+  }
+
+  if (gameState !== 'menu') { hoveredButton = -1; return }
   hoveredButton = getButtonRects().findIndex(
     (btn) => mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h
   )
@@ -599,10 +957,22 @@ canvas.addEventListener('mousemove', (e) => {
 })
 
 canvas.addEventListener('click', (e) => {
-  if (gameState !== 'menu') return
   const rect = canvas.getBoundingClientRect()
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top
+
+  if (gameState === 'playing' && inventoryOpen) {
+    const hit = (b) => b && mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h
+    if (hit(invUseBtn))     { useSelectedItem();    return }
+    if (hit(invDiscardBtn)) { discardSelectedItem(); return }
+    const si = getInvSlotRects().findIndex(
+      s => mx >= s.x && mx <= s.x + s.w && my >= s.y && my <= s.y + s.h
+    )
+    if (si >= 0) selectedSlot = si === selectedSlot ? -1 : si
+    return
+  }
+
+  if (gameState !== 'menu') return
   const idx = getButtonRects().findIndex(
     (btn) => mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h
   )
@@ -614,6 +984,15 @@ window.addEventListener('keydown', (e) => {
                   'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']
   if (gameState === 'menu') {
     if (!ignore.includes(e.key)) startNewGame()
+  } else if (gameState === 'playing') {
+    if (e.key === 'i' || e.key === 'I') {
+      inventoryOpen = !inventoryOpen
+      if (!inventoryOpen) { selectedSlot = -1; hoveredSlot = -1 }
+    } else if (e.key === 'Escape' && inventoryOpen) {
+      inventoryOpen = false; selectedSlot = -1; hoveredSlot = -1
+    } else if ((e.key === 'u' || e.key === 'U') && inventoryOpen) {
+      useSelectedItem()
+    }
   } else if (gameState === 'gameover' && e.key === 'Enter') {
     resetHearts()
     gameState = 'menu'
@@ -642,6 +1021,8 @@ function playingUpdate(deltaTime) {
     if (fadeAlpha <= 0) { fadeAlpha = 0; fadeState = 'none' }
   }
 
+  worldTime += deltaTime
+
   // Leaf spawner
   elapsedTime += deltaTime
   if (elapsedTime > 1.5) {
@@ -653,8 +1034,8 @@ function playingUpdate(deltaTime) {
     elapsedTime = 0
   }
 
-  // Player input — blocked during transitions
-  if (fadeState === 'none') {
+  // Player input — blocked during transitions and inventory
+  if (fadeState === 'none' && !inventoryOpen) {
     player.handleInput(keys)
   } else {
     player.velocity.x = 0
@@ -662,8 +1043,25 @@ function playingUpdate(deltaTime) {
   }
   player.update(deltaTime, collisionBlocks)
 
+  // Item pickup
+  if (fadeState === 'none' && !inventoryOpen) {
+    for (let i = currentMapItems.length - 1; i >= 0; i--) {
+      const item = currentMapItems[i]
+      if (
+        player.x + player.width  >= item.x &&
+        player.x                 <= item.x + 16 &&
+        player.y + player.height >= item.y &&
+        player.y                 <= item.y + 16 &&
+        inventory.length < 12
+      ) {
+        inventory.push({ type: item.type })
+        currentMapItems.splice(i, 1)
+      }
+    }
+  }
+
   // Exit detection
-  if (fadeState === 'none') {
+  if (fadeState === 'none' && !inventoryOpen) {
     for (const exit of mapConfigs[currentMapName].exits) {
       if (
         player.x + player.width  >= exit.x &&
@@ -685,11 +1083,38 @@ function playingUpdate(deltaTime) {
   c.translate(-scrollX, -scrollY)
   c.clearRect(scrollX, scrollY, canvas.width / MAP_SCALE, canvas.height / MAP_SCALE)
   c.drawImage(backgroundCanvas, 0, 0)
+
+  // Exit markers — blinking rect + label
+  const exitAlpha = 0.3 + 0.6 * (Math.sin(worldTime * 2.5) + 1) / 2
+  const exitColor = Math.sin(worldTime * 2.5) > 0 ? '#ffffff' : '#ffd700'
+  for (const exit of mapConfigs[currentMapName].exits) {
+    c.save()
+    c.globalAlpha = exitAlpha
+    c.strokeStyle = exitColor
+    c.lineWidth = 2 / MAP_SCALE
+    c.strokeRect(exit.x, exit.y, exit.width, exit.height)
+    c.fillStyle = '#fff'
+    c.font = `${10 / MAP_SCALE}px monospace`
+    c.textAlign = 'center'
+    c.fillText('↩ spat', exit.x + exit.width / 2, exit.y - 3 / MAP_SCALE)
+    c.restore()
+  }
+
+  // Items — bob animation + glow
+  for (const item of currentMapItems) {
+    const bobY = item.y + Math.sin(worldTime * 3 + item.x) * 1.5
+    c.save()
+    c.shadowColor = '#ffd700'
+    c.shadowBlur = 8
+    drawItemIcon(c, item.type, item.x + 8, bobY + 8, 16)
+    c.restore()
+  }
+
   player.draw(c)
 
   for (let i = monsters.length - 1; i >= 0; i--) {
     const monster = monsters[i]
-    monster.update(deltaTime, collisionBlocks)
+    if (!inventoryOpen) monster.update(deltaTime, collisionBlocks)
     monster.draw(c)
 
     if (
@@ -757,11 +1182,16 @@ function animate() {
   else if (gameState === 'victory')  drawVictory(deltaTime)
   else                               playingUpdate(deltaTime)
 
+  if (gameState === 'playing' && inventoryOpen) drawInventory()
+
   requestAnimationFrame(animate)
 }
 
 // ─── Start ─────────────────────────────────────────────────────────────────────
 
-initMenuPetals()
-lastTime = performance.now()
-animate()
+;(async () => {
+  menuBg = await loadImage('./images/menu.png')
+  initMenuPetals()
+  lastTime = performance.now()
+  animate()
+})().catch(err => console.error('Failed to load menu.png — game cannot start:', err))
