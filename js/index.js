@@ -405,8 +405,8 @@ function getButtonRects() {
   const BTN_W = Math.floor(W * 0.24)
   const BTN_H = 68
   const BTN_GAP = 16
-  const startX = W * 0.635
-  const startY = H * 0.57
+  const startX = W * 0.655
+  const startY = H * 0.52
   return BUTTONS.map((_, i) => ({
     x: startX, y: startY + i * (BTN_H + BTN_GAP), w: BTN_W, h: BTN_H,
   }))
@@ -1100,8 +1100,8 @@ function drawMenu(deltaTime) {
   const BTN_W = Math.floor(W * 0.24)
   const BTN_H = 68
   const BTN_GAP = 16
-  const btnStartX = W * 0.635
-  const btnStartY = H * 0.57
+  const btnStartX = W * 0.655
+  const btnStartY = H * 0.52
 
   BUTTONS.forEach((label, i) => {
     const bx = btnStartX
@@ -1485,6 +1485,16 @@ function playingUpdate(deltaTime) {
       if (filledHearts.length > 0) filledHearts[filledHearts.length - 1].currentFrame = 0
       if (filledHearts.length <= 1) gameState = 'gameover'
     }
+  }
+
+  // Victory — všetky monštrá na tejto mape porazené
+  if (
+    monsters.length === 0 &&
+    mapConfigs[currentMapName].monsters.length > 0 &&
+    fadeState === 'none'
+  ) {
+    gameState = 'victory'
+    initMenuPetals()
   }
 
   c.drawImage(frontRendersCanvas, 0, 0)
