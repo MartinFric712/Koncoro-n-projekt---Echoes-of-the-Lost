@@ -172,10 +172,12 @@ const mapConfigs = {
     spawnPoints: {
       default:     { x: 400, y: 500 },
       fromVillage: { x: 400, y: 500 },
+      fromMap3:    { x: 760, y: 36, facing: 'left' },
     },
     exits: [
       { x: 0,   y: 300, width: 16, height: 64, targetMap: 'map1', targetSpawn: 'fromForest' },
       { x: 780, y: 300, width: 16, height: 48, targetMap: 'map1', targetSpawn: 'fromForest' },
+      { x: 780, y: 16,  width: 16, height: 64, targetMap: 'map3', targetSpawn: 'fromMap2'  },
     ],
     monsters: [
       { x: 200, y: 200, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
@@ -194,6 +196,56 @@ const mapConfigs = {
       { type: 'gem',       x: 350, y: 450 },
       { type: 'gem',       x: 250, y: 500 },
     ],
+  },
+  map3: {
+    rows: 60,
+    cols: 60,
+    layers: {
+      l_Ground,
+      l_Fence,
+      l_Enviroment,
+      l_Decorations,
+      l_Steps,
+      l_Buildnigs,
+    },
+    frontLayers: {
+      l_Roof,
+    },
+    collisionsData: m3_collisions,
+    tilesets: {
+      l_Ground:       { imageUrl: './images/terrain.png',     tileSize: 16 },
+      l_Fence:        { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Enviroment:   { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Decorations:  { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Steps:        { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Buildnigs:    { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Roof:         { imageUrl: './images/decorations.png', tileSize: 16 },
+    },
+    spawnPoints: {
+      default:  { x: 80,  y: 300, facing: 'right' },
+      fromMap2: { x: 80,  y: 300, facing: 'right' },
+    },
+    exits: [
+      { x: 0, y: 280, width: 16, height: 64, targetMap: 'map2', targetSpawn: 'fromMap3' },
+    ],
+    monsters: [
+      { x: 356, y: 468, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 356, y: 212, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 292, y: 212, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 260, y: 404, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 628, y: 292, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 436, y: 612, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 100, y: 404, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 596, y: 228, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 564, y: 660, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 356, y: 292, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 676, y: 388, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 292, y: 340, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 564, y: 356, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 228, y: 164, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 372, y: 724, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+    ],
+    items: [],
   },
 }
 
