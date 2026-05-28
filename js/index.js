@@ -45,6 +45,23 @@ const ITEM_DATA = {
   gem:       { name: 'Drahokam',    desc: 'Vzácny kameň z lesa.',                     usable: false },
 }
 
+// Chest
+const chest = { x: 140, y: 130, width: 20, height: 16, isOpen: false }
+let chestMsgTimer = 0
+
+// Casino
+const CASINO_RESULTS = [
+  { items: ['coin','coin','coin'],              weight: 30, label: '3x ZLATE!'   },
+  { items: ['coin','coin','gem'],               weight: 20, label: 'BONUS GEM!'  },
+  { items: ['hp_potion','hp_potion','coin'],    weight: 20, label: 'ZDRAVIE!'    },
+  { items: ['gem','gem','gem'],                 weight:  5, label: 'JACKPOT!'    },
+  { items: ['coin','hp_potion','key'],          weight: 15, label: 'MIX!'        },
+  { items: ['coin','coin','coin','coin','coin'],weight: 10, label: 'COINS RAIN!' },
+]
+const SLOT_SYMBOLS = ['\u{1F4B0}', '\u{1F48E}', '❤', '\u{1F5DD}', '⭐', '\u{1F480}']
+const ITEM_TO_SYMBOL = { coin: 0, gem: 1, hp_potion: 2, key: 3 }
+let casinoState = null
+
 const BUTTONS = ['NOVÁ HRA', 'POKRAČOVAŤ', 'NASTAVENIA', 'KONIEC']
 const menuPetals = []
 let menuBg = null
@@ -113,6 +130,7 @@ const mapConfigs = {
       { x: 400, y: 400, size: 15, imageSrc: './images/dragon.png',  sprites: monsterSprites },
     ],
     items: [
+      { type: 'key',       x: 110, y: 120 },
       { type: 'hp_potion', x: 180, y: 200 },
       { type: 'hp_potion', x: 320, y: 150 },
       { type: 'hp_potion', x: 300, y: 250 },
@@ -730,6 +748,259 @@ function drawInventory() {
   c.restore()
 }
 
+// ─── Chest & Casino ────────────────────────────────────────────────────────────
+
+function pickWeightedResult() {
+  const total = CASINO_RESULTS.reduce((s, r) => s + r.weight, 0)
+  let rnd = Math.random() * total
+  for (const r of CASINO_RESULTS) { rnd -= r.weight; if (rnd <= 0) return r }
+  return CASINO_RESULTS[0]
+}
+
+function startCasino() {
+  const ki = inventory.findIndex(i => i.type === 'key')
+  if (ki >= 0) inventory.splice(ki, 1)
+  const result = pickWeightedResult()
+  const finalItems = result.items.slice(0, 3)
+  while (finalItems.length < 3) finalItems.push('coin')
+  casinoState = {
+    phase: 'spinning', timer: 0, result,
+    isJackpot: result.label === 'JACKPOT!',
+    slots: finalItems.map((type, i) => ({
+      symbolIdx: 0,
+      finalIdx: ITEM_TO_SYMBOL[type] ?? 4,
+      stopped: false,
+      stopAt: 1.2 + i * 0.3,
+      elapsed: 0,
+      flashTimer: 0,
+    })),
+    lightPhase: 0, lightTimer: 0,
+    confetti: [], coinRain: [],
+    itemsAdded: false, flashTimer: 0,
+  }
+  gameState = 'casino'
+}
+
+function drawChest(ctx) {
+  if (currentMapName !== 'map1') return
+  const { x, y, width: w, height: h } = chest
+  const S = 1 / MAP_SCALE
+
+  const dx = player.center.x - (x + w / 2)
+  const dy = player.center.y - (y + h / 2)
+  const near = Math.sqrt(dx * dx + dy * dy) < 30
+
+  if (chest.isOpen) {
+    ctx.fillStyle = '#8B4513'; ctx.fillRect(x, y + 4, w, h - 4)
+    ctx.strokeStyle = '#5c2d0a'; ctx.lineWidth = 2 * S
+    ctx.strokeRect(x, y + 4, w, h - 4)
+    ctx.fillStyle = '#3a2000'; ctx.fillRect(x + 2 * S, y + 6 * S, w - 4 * S, h - 8 * S)
+    ctx.save()
+    ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 8 / MAP_SCALE
+    ctx.fillStyle = 'rgba(255,215,0,0.4)'
+    ctx.fillRect(x + 2 * S, y + 6 * S, w - 4 * S, h - 8 * S)
+    ctx.restore()
+    ctx.save()
+    ctx.translate(x, y + 4)
+    ctx.rotate(-Math.PI / 4)
+    ctx.fillStyle = '#a0522d'; ctx.fillRect(0, -(6 * S), w, 6 * S)
+    ctx.strokeStyle = '#5c2d0a'; ctx.lineWidth = 2 * S
+    ctx.strokeRect(0, -(6 * S), w, 6 * S)
+    ctx.restore()
+  } else {
+    ctx.fillStyle = '#8B4513'; ctx.fillRect(x, y + 6 * S, w, h - 6 * S)
+    ctx.strokeStyle = '#5c2d0a'; ctx.lineWidth = 2 * S
+    ctx.strokeRect(x, y + 6 * S, w, h - 6 * S)
+    ctx.fillStyle = '#a0522d'; ctx.fillRect(x, y, w, 8 * S)
+    ctx.strokeStyle = '#5c2d0a'
+    ctx.strokeRect(x, y, w, 8 * S)
+    ctx.fillStyle = '#ffd700'
+    ctx.fillRect(x + S,         y + S, 3 * S, 3 * S)
+    ctx.fillRect(x + w / 2 - S, y + S, 3 * S, 3 * S)
+    ctx.fillRect(x + w - 4 * S, y + S, 3 * S, 3 * S)
+    ctx.beginPath()
+    ctx.arc(x + w / 2, y + 7 * S, 2 * S, 0, Math.PI * 2)
+    ctx.fill()
+    if (near && !chest.isOpen) {
+      ctx.fillStyle = '#fff'
+      ctx.font = `${10 * S}px monospace`
+      ctx.textAlign = 'center'
+      ctx.fillText('[ E ] Otvorit', x + w / 2, y - 4 * S)
+      ctx.textAlign = 'left'
+    }
+  }
+  if (chestMsgTimer > 0) {
+    ctx.save()
+    ctx.globalAlpha = Math.min(1, chestMsgTimer)
+    ctx.fillStyle = '#ff4444'
+    ctx.font = `${10 * S}px monospace`
+    ctx.textAlign = 'center'
+    ctx.fillText('Potrebujes kluc!', x + w / 2, y - 16 * S)
+    ctx.globalAlpha = 1
+    ctx.textAlign = 'left'
+    ctx.restore()
+  }
+}
+
+function drawCasino(deltaTime) {
+  if (!casinoState) return
+  const cs = casinoState
+  const W = canvas.width / dpr
+  const H = canvas.height / dpr
+
+  c.save()
+  c.scale(dpr, dpr)
+
+  cs.timer += deltaTime
+  cs.lightTimer += deltaTime
+  if (cs.lightTimer >= 0.1) { cs.lightTimer = 0; cs.lightPhase = (cs.lightPhase + 1) % 4 }
+
+  // Overlay
+  c.fillStyle = 'rgba(0,0,0,0.90)'
+  c.fillRect(0, 0, W, H)
+
+  // Title
+  const hue = (cs.timer * 90) % 360
+  c.fillStyle = `hsl(${hue},100%,65%)`
+  c.font = 'bold 36px monospace'
+  c.textAlign = 'center'
+  c.shadowColor = `hsl(${hue},100%,65%)`
+  c.shadowBlur = 14
+  c.fillText('\u{1F4B0} STASTNY KUFR \u{1F4B0}', W / 2, H * 0.13)
+  c.shadowBlur = 0
+
+  // Slot machine layout
+  const SW = 120, SH = 120, GAP = 20
+  const totalW = 3 * SW + 2 * GAP
+  const fX = W / 2 - totalW / 2 - 24
+  const fY = H / 2 - SH / 2 - 24
+  const fW = totalW + 48
+  const fH = SH + 48
+
+  c.fillStyle = '#2a0a4e'; c.fillRect(fX, fY, fW, fH)
+  c.strokeStyle = '#ffd700'; c.lineWidth = 4; c.strokeRect(fX, fY, fW, fH)
+
+  // Blinking lights
+  const lc = ['#ff3333','#ffd700','#33ff44','#3388ff']
+  const pts = [
+    [fX + fW * 0.15, fY], [fX + fW * 0.5, fY], [fX + fW * 0.85, fY],
+    [fX + fW, fY + fH * 0.5],
+    [fX + fW * 0.85, fY + fH], [fX + fW * 0.5, fY + fH], [fX + fW * 0.15, fY + fH],
+    [fX, fY + fH * 0.5],
+  ]
+  pts.forEach(([px, py], idx) => {
+    const col = lc[(cs.lightPhase + (idx % 2) * 2) % 4]
+    c.beginPath(); c.arc(px, py, 7, 0, Math.PI * 2)
+    c.fillStyle = col; c.shadowColor = col; c.shadowBlur = 10; c.fill(); c.shadowBlur = 0
+  })
+
+  // Slots
+  cs.slots.forEach((slot, i) => {
+    const sx = fX + 24 + i * (SW + GAP)
+    const sy = fY + 24
+
+    if (cs.phase === 'spinning' && !slot.stopped) {
+      const left = slot.stopAt - cs.timer
+      if (left <= 0) {
+        slot.stopped = true; slot.symbolIdx = slot.finalIdx; slot.flashTimer = 0.4
+      } else {
+        slot.elapsed += deltaTime
+        const iv = left > 0.6 ? 0.07 : 0.13
+        if (slot.elapsed >= iv) { slot.symbolIdx = (slot.symbolIdx + 1) % SLOT_SYMBOLS.length; slot.elapsed = 0 }
+      }
+    }
+
+    c.fillStyle = '#0d0620'; c.fillRect(sx, sy, SW, SH)
+    c.strokeStyle = slot.stopped ? '#ffd700' : '#3a2a6e'
+    c.lineWidth = slot.stopped ? 3 : 1
+    c.strokeRect(sx, sy, SW, SH)
+
+    if (slot.flashTimer > 0) {
+      slot.flashTimer -= deltaTime
+      c.fillStyle = `rgba(255,255,255,${(slot.flashTimer / 0.4) * 0.85})`
+      c.fillRect(sx, sy, SW, SH)
+    }
+
+    c.font = '52px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'
+    c.fillText(SLOT_SYMBOLS[slot.symbolIdx], sx + SW / 2, sy + SH / 2)
+    c.textBaseline = 'alphabetic'
+  })
+
+  // Phase transitions
+  if (cs.phase === 'spinning' && cs.slots.every(s => s.stopped)) {
+    cs.phase = 'pause'; cs.timer = 0
+  }
+  if (cs.phase === 'pause' && cs.timer >= 0.5) {
+    cs.phase = 'result'; cs.timer = 0; cs.flashTimer = 0
+    if (!cs.itemsAdded) {
+      cs.itemsAdded = true
+      for (const type of cs.result.items) { if (inventory.length < 12) inventory.push({ type }) }
+    }
+    if (cs.isJackpot) {
+      cs.confetti = Array.from({ length: 50 }, () => ({
+        x: Math.random() * W, y: Math.random() * H * 0.5,
+        vx: (Math.random() - 0.5) * 320, vy: (Math.random() - 0.4) * 220,
+        color: `hsl(${Math.random() * 360},100%,65%)`,
+        alpha: 1, size: 5 + Math.random() * 6,
+      }))
+    }
+    if (cs.result.label === 'COINS RAIN!') {
+      cs.coinRain = Array.from({ length: 20 }, (_, i) => ({
+        x: ((i + Math.random()) / 20) * W,
+        y: -20 - Math.random() * 60,
+        vy: 190 + Math.random() * 110, alpha: 1,
+      }))
+    }
+  }
+
+  // Result phase
+  if (cs.phase === 'result') {
+    cs.flashTimer += deltaTime
+    const fc = cs.isJackpot ? 5 : 1
+    const fAlpha = cs.flashTimer < 1.2
+      ? Math.max(0, Math.sin(cs.flashTimer * Math.PI * fc * 2) * 0.55)
+      : 0
+    if (fAlpha > 0) {
+      c.fillStyle = cs.isJackpot ? `rgba(255,215,0,${fAlpha})` : `rgba(0,200,0,${fAlpha})`
+      c.fillRect(0, 0, W, H)
+    }
+
+    for (const p of cs.confetti) {
+      p.x += p.vx * deltaTime; p.y += p.vy * deltaTime
+      p.vy += 200 * deltaTime; p.alpha = Math.max(0, p.alpha - deltaTime * 0.45)
+      c.globalAlpha = p.alpha; c.fillStyle = p.color
+      c.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size)
+    }
+    c.globalAlpha = 1
+
+    for (const coin of cs.coinRain) {
+      coin.y += coin.vy * deltaTime
+      coin.alpha = Math.max(0, 1 - Math.max(0, cs.flashTimer - 0.3) / 1.0)
+      if (coin.y < H + 20) {
+        c.globalAlpha = coin.alpha; c.font = '22px serif'
+        c.textAlign = 'center'; c.textBaseline = 'middle'
+        c.fillText('\u{1F4B0}', coin.x, coin.y); c.textBaseline = 'alphabetic'
+        c.globalAlpha = 1
+      }
+    }
+
+    c.globalAlpha = Math.min(1, cs.flashTimer * 1.8)
+    c.font = 'bold 48px monospace'; c.textAlign = 'center'
+    c.fillStyle = '#ffd700'; c.shadowColor = '#ffd700'; c.shadowBlur = 22
+    c.fillText(cs.result.label, W / 2, H * 0.72)
+    c.shadowBlur = 0; c.globalAlpha = 1
+
+    const blinkA = (Math.sin(cs.timer * 3) + 1) / 2
+    c.globalAlpha = 0.4 + blinkA * 0.6
+    c.fillStyle = '#fff'; c.font = 'bold 16px monospace'
+    c.fillText('[ ENTER ] Pokracovat', W / 2, H * 0.86)
+    c.globalAlpha = 1
+  }
+
+  c.textAlign = 'left'
+  c.restore()
+}
+
 // ─── Screen draw functions ─────────────────────────────────────────────────────
 
 function drawMenu(deltaTime) {
@@ -992,6 +1263,24 @@ window.addEventListener('keydown', (e) => {
       inventoryOpen = false; selectedSlot = -1; hoveredSlot = -1
     } else if ((e.key === 'u' || e.key === 'U') && inventoryOpen) {
       useSelectedItem()
+    } else if ((e.key === 'e' || e.key === 'E') && !inventoryOpen) {
+      if (!chest.isOpen && currentMapName === 'map1') {
+        const dx = player.center.x - (chest.x + chest.width / 2)
+        const dy = player.center.y - (chest.y + chest.height / 2)
+        if (Math.sqrt(dx * dx + dy * dy) < 30) {
+          if (inventory.some(i => i.type === 'key')) {
+            startCasino()
+          } else {
+            chestMsgTimer = 2.0
+          }
+        }
+      }
+    }
+  } else if (gameState === 'casino') {
+    if (e.key === 'Enter' && casinoState?.phase === 'result') {
+      chest.isOpen = true
+      gameState = 'playing'
+      casinoState = null
     }
   } else if (gameState === 'gameover' && e.key === 'Enter') {
     resetHearts()
@@ -1022,6 +1311,7 @@ function playingUpdate(deltaTime) {
   }
 
   worldTime += deltaTime
+  if (chestMsgTimer > 0) chestMsgTimer -= deltaTime
 
   // Leaf spawner
   elapsedTime += deltaTime
@@ -1110,6 +1400,7 @@ function playingUpdate(deltaTime) {
     c.restore()
   }
 
+  drawChest(c)
   player.draw(c)
 
   for (let i = monsters.length - 1; i >= 0; i--) {
@@ -1180,6 +1471,7 @@ function animate() {
   if      (gameState === 'menu')     drawMenu(deltaTime)
   else if (gameState === 'gameover') drawGameOver(deltaTime)
   else if (gameState === 'victory')  drawVictory(deltaTime)
+  else if (gameState === 'casino')   { playingUpdate(0); drawCasino(deltaTime) }
   else                               playingUpdate(deltaTime)
 
   if (gameState === 'playing' && inventoryOpen) drawInventory()
