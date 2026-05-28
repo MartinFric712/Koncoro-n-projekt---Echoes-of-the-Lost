@@ -1487,15 +1487,6 @@ function playingUpdate(deltaTime) {
     }
   }
 
-  // Victory — všetky monštrá na tejto mape porazené
-  if (
-    monsters.length === 0 &&
-    mapConfigs[currentMapName].monsters.length > 0 &&
-    fadeState === 'none'
-  ) {
-    gameState = 'victory'
-    initMenuPetals()
-  }
 
   c.drawImage(frontRendersCanvas, 0, 0)
 
