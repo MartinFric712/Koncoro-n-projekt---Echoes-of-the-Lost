@@ -32,8 +32,16 @@ let fadeState = 'none' // 'none' | 'out' | 'loading' | 'in'
 let pendingMap = null
 let pendingSpawn = null
 
+// Audio
+const bgMusic = new Audio('./5 - Peaceful.ogg')
+bgMusic.loop = true
+bgMusic.volume = 0.5 // Predvolená hlasitosť 50%
+let musicStarted = false
+let volumeLevel = 50
+let hoveredSettingsBtn = null
+
 // Game state
-let gameState = 'menu' // 'menu' | 'playing' | 'intro' | 'story' | 'gameover' | 'victory'
+let gameState = 'menu' // 'menu' | 'playing' | 'intro' | 'story' | 'gameover' | 'victory' | 'settings'
 
 // Story
 const COINS_NEEDED = 30
@@ -487,7 +495,9 @@ function drawMenu(deltaTime) {
 
   // Background image — full device-pixel canvas
   c.restore()
-  c.drawImage(menuBg, 0, 0, canvas.width, canvas.height)
+  if (menuBg) {
+      c.drawImage(menuBg, 0, 0, canvas.width, canvas.height)
+  }
   c.save()
   c.scale(dpr, dpr)
 
@@ -806,6 +816,60 @@ function drawVictory(deltaTime) {
   c.restore()
 }
 
+function getSettingsButtons() {
+  const W = canvas.width / dpr
+  const H = canvas.height / dpr
+  return {
+    minus: { x: W / 2 - W * 0.25, y: H * 0.45, w: W * 0.15, h: H * 0.1 },
+    plus: { x: W / 2 + W * 0.1, y: H * 0.45, w: W * 0.15, h: H * 0.1 },
+    back: { x: W / 2 - W * 0.15, y: H * 0.7, w: W * 0.3, h: H * 0.1 }
+  }
+}
+
+function drawSettings(deltaTime) {
+  const W = canvas.width / dpr
+  const H = canvas.height / dpr
+
+  c.save()
+  c.scale(dpr, dpr)
+
+  // Tmavé pozadie s menu obrázkom v pozadí
+  if (menuBg) {
+    c.drawImage(menuBg, 0, 0, canvas.width, canvas.height)
+  }
+  c.fillStyle = 'rgba(0,0,0,0.85)'
+  c.fillRect(0, 0, W, H)
+
+  // Nadpis
+  c.fillStyle = '#ffcc00'
+  c.font = `bold ${Math.max(30, Math.floor(H * 0.08))}px monospace`
+  c.textAlign = 'center'
+  c.textBaseline = 'middle'
+  c.fillText('NASTAVENIA', W / 2, H * 0.2)
+
+  // Aktuálna hlasitosť
+  c.fillStyle = '#fff'
+  c.font = `bold ${Math.max(20, Math.floor(H * 0.05))}px monospace`
+  c.fillText(`HLASITOSŤ: ${volumeLevel}%`, W / 2, H * 0.5)
+
+  const btns = getSettingsButtons()
+
+  // Tlačidlo Mínus
+  c.fillStyle = hoveredSettingsBtn === 'minus' ? '#ff3366' : '#fff'
+  c.fillText('[-]', btns.minus.x + btns.minus.w / 2, btns.minus.y + btns.minus.h / 2)
+
+  // Tlačidlo Plus
+  c.fillStyle = hoveredSettingsBtn === 'plus' ? '#44ff44' : '#fff'
+  c.fillText('[+]', btns.plus.x + btns.plus.w / 2, btns.plus.y + btns.plus.h / 2)
+
+  // Tlačidlo Späť
+  c.fillStyle = hoveredSettingsBtn === 'back' ? '#ffd700' : '#888'
+  c.font = `bold ${Math.max(16, Math.floor(H * 0.04))}px monospace`
+  c.fillText('SPÄŤ DO MENU', btns.back.x + btns.back.w / 2, btns.back.y + btns.back.h / 2)
+
+  c.restore()
+}
+
 // ─── Game state actions ────────────────────────────────────────────────────────
 
 function resetHearts() {
@@ -846,7 +910,8 @@ function handleButtonClick(index) {
       }
       break
     case 2:
-      console.log('settings - coming soon')
+      gameState = 'settings'
+      hoveredSettingsBtn = null
       break
     case 3:
       if (typeof window.close === 'function') window.close()
@@ -862,23 +927,57 @@ canvas.addEventListener('mousemove', (e) => {
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top
 
-  if (gameState !== 'menu') { hoveredButton = -1; return }
-  hoveredButton = getButtonRects().findIndex(
-    (btn) => mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h
-  )
-  canvas.style.cursor = hoveredButton >= 0 ? 'pointer' : 'default'
+  if (gameState === 'menu') {
+    hoveredButton = getButtonRects().findIndex(
+      (btn) => mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h
+    )
+    canvas.style.cursor = hoveredButton >= 0 ? 'pointer' : 'default'
+  } else if (gameState === 'settings') {
+    hoveredSettingsBtn = null
+    const btns = getSettingsButtons()
+    for (const [key, b] of Object.entries(btns)) {
+      if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+        hoveredSettingsBtn = key
+      }
+    }
+    canvas.style.cursor = hoveredSettingsBtn ? 'pointer' : 'default'
+  } else {
+    hoveredButton = -1
+    canvas.style.cursor = 'default'
+  }
 })
 
 canvas.addEventListener('click', (e) => {
+  // Spustenie hudby pri prvom kliknutí do hry
+  if (!musicStarted) {
+    bgMusic.play().catch(err => console.log('Autoplay zablokovaný:', err))
+    musicStarted = true
+  }
+
   const rect = canvas.getBoundingClientRect()
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top
 
-  if (gameState !== 'menu') return
-  const idx = getButtonRects().findIndex(
-    (btn) => mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h
-  )
-  if (idx >= 0) handleButtonClick(idx)
+  if (gameState === 'menu') {
+    const idx = getButtonRects().findIndex(
+      (btn) => mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h
+    )
+    if (idx >= 0) handleButtonClick(idx)
+  } else if (gameState === 'settings') {
+    const btns = getSettingsButtons()
+    if (mx >= btns.minus.x && mx <= btns.minus.x + btns.minus.w && my >= btns.minus.y && my <= btns.minus.y + btns.minus.h) {
+      volumeLevel = Math.max(0, volumeLevel - 10)
+      bgMusic.volume = volumeLevel / 100
+    }
+    if (mx >= btns.plus.x && mx <= btns.plus.x + btns.plus.w && my >= btns.plus.y && my <= btns.plus.y + btns.plus.h) {
+      volumeLevel = Math.min(100, volumeLevel + 10)
+      bgMusic.volume = volumeLevel / 100
+    }
+    if (mx >= btns.back.x && mx <= btns.back.x + btns.back.w && my >= btns.back.y && my <= btns.back.y + btns.back.h) {
+      gameState = 'menu'
+      canvas.style.cursor = 'default'
+    }
+  }
 })
 
 window.addEventListener('keydown', (e) => {
@@ -1211,6 +1310,7 @@ function animate() {
   else if (gameState === 'story') drawStory(deltaTime)
   else if (gameState === 'gameover') drawGameOver(deltaTime)
   else if (gameState === 'victory') drawVictory(deltaTime)
+  else if (gameState === 'settings') drawSettings(deltaTime)
   else playingUpdate(deltaTime)
 
   requestAnimationFrame(animate)
