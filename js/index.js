@@ -87,7 +87,7 @@ const mapConfigs = {
       fromForest: { x: 380, y: 80, facing: 'down' },
     },
     exits: [
-      { x: 376, y: 16, width: 48, height: 32, targetMap: 'map2', targetSpawn: 'fromVillage' },
+      { x: 370, y: 16, width: 48, height: 32, targetMap: 'map2', targetSpawn: 'fromVillage' },
     ],
     monsters: [
       { x: 200, y: 150, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
@@ -123,14 +123,12 @@ const mapConfigs = {
       m2_folliage_in_forest: { imageUrl: './images/decorations.png', tileSize: 16 },
     },
     spawnPoints: {
-      default: { x: 400, y: 500 },
-      fromVillage: { x: 400, y: 500 },
-      fromMap3: { x: 760, y: 36, facing: 'left' },
+      fromVillage: { x: 575, y: 600 },
+      fromMap3: { x: 640, y: 50, facing: 'down' },
     },
     exits: [
-      { x: 0, y: 300, width: 16, height: 64, targetMap: 'map1', targetSpawn: 'fromForest' },
-      { x: 780, y: 300, width: 16, height: 48, targetMap: 'map1', targetSpawn: 'fromForest' },
-      { x: 780, y: 16, width: 16, height: 64, targetMap: 'map3', targetSpawn: 'fromMap2' },
+      { x: 610, y: 5, width: 64, height: 16, targetMap: 'map3', targetSpawn: 'fromMap2' },
+      { x: 525, y: 620, width: 96, height: 16, targetMap: 'map1', targetSpawn: 'fromForest' },
     ],
     monsters: [
       { x: 200, y: 200, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
@@ -169,11 +167,10 @@ const mapConfigs = {
       l_Building_Front: { imageUrl: './images/decorations.png', tileSize: 16 },
     },
     spawnPoints: {
-      default: { x: 80, y: 300, facing: 'right' },
-      fromMap2: { x: 80, y: 300, facing: 'right' },
+      fromMap2: { x: 785, y: 900, facing: 'down' },
     },
     exits: [
-      { x: 0, y: 280, width: 16, height: 64, targetMap: 'map2', targetSpawn: 'fromMap3' },
+      { x: 780, y: 930, width: 40, height: 16, targetMap: 'map2', targetSpawn: 'fromMap3' },
     ],
     monsters: [
       { x: 356, y: 468, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
