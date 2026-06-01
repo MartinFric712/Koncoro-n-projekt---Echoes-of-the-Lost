@@ -347,13 +347,16 @@ function initMenuPetals() {
 function getButtonRects() {
   const W = canvas.width / dpr
   const H = canvas.height / dpr
-  const BTN_W = Math.floor(W * 0.24)
-  const BTN_H = 68
-  const BTN_GAP = 16
-  const startX = W * 0.655
-  const startY = H * 0.52
+  const BTN_W = W * 0.322
+  const startX = W * 0.637
+  const planks = [
+    { y: H * 0.430, h: H * 0.065 },
+    { y: H * 0.547, h: H * 0.060 },
+    { y: H * 0.658, h: H * 0.060 },
+    { y: H * 0.768, h: H * 0.060 },
+  ]
   return BUTTONS.map((_, i) => ({
-    x: startX, y: startY + i * (BTN_H + BTN_GAP), w: BTN_W, h: BTN_H,
+    x: startX, y: planks[i].y, w: BTN_W, h: planks[i].h,
   }))
 }
 
@@ -443,38 +446,27 @@ function drawMenu(deltaTime) {
     c.restore()
   }
 
-  // Blink "any key" hint
-  const blinkA = (Math.sin(menuBlinkTime * 3) + 1) / 2
-  c.globalAlpha = 0.35 + blinkA * 0.65
-  c.fillStyle = '#e8d5ff'
-  c.font = `bold ${Math.max(10, Math.floor(H * 0.022))}px 'Press Start 2P', monospace`
-  c.textAlign = 'center'
-  c.fillText('Stlač ľubovoľný kláves', W * 0.27, H * 0.88)
-  c.textAlign = 'left'
-  c.globalAlpha = 1
 
-  // Buttons — transparent, text only over image planks
-  const BTN_W = Math.floor(W * 0.24)
-  const BTN_H = 68
-  const BTN_GAP = 16
-  const btnStartX = W * 0.655
-  const btnStartY = H * 0.52
+
+  // Buttons — use same rects as getButtonRects() for perfect alignment
+  const btns = getButtonRects()
 
   BUTTONS.forEach((label, i) => {
-    const bx = btnStartX
-    const by = btnStartY + i * (BTN_H + BTN_GAP)
+    const btn = btns[i]
     const isHover = hoveredButton === i
     const isDisabled = i === 1 && !menuHasGame
 
-    const fontSize = isHover && !isDisabled ? 26 : 24
-    c.font = `bold ${fontSize}px monospace`
+    const fontSize = Math.floor(btn.h * 0.45)
+    c.font = `bold ${isHover && !isDisabled ? fontSize + 2 : fontSize}px monospace`
     c.shadowColor = '#000'
     c.shadowOffsetX = 2
     c.shadowOffsetY = 2
     c.shadowBlur = 0
     c.fillStyle = isDisabled ? '#666' : (isHover ? '#ffd700' : '#fff')
     c.textAlign = 'center'
-    c.fillText(label, bx + BTN_W / 2, by + BTN_H * 0.62)
+    c.textBaseline = 'middle'
+    c.fillText(label, btn.x + btn.w / 2, btn.y + btn.h / 2)
+    c.textBaseline = 'alphabetic'
   })
   c.shadowColor = 'transparent'
   c.textAlign = 'left'
@@ -643,9 +635,7 @@ canvas.addEventListener('click', (e) => {
 window.addEventListener('keydown', (e) => {
   const ignore = ['Control', 'Alt', 'Shift', 'Meta', 'Tab', 'F1', 'F2', 'F3',
     'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']
-  if (gameState === 'menu') {
-    if (!ignore.includes(e.key)) startNewGame()
-  } else if (gameState === 'gameover' && e.key === 'Enter') {
+  if (gameState === 'gameover' && e.key === 'Enter') {
     resetHearts()
     gameState = 'menu'
     initMenuPetals()
