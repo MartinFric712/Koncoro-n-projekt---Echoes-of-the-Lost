@@ -22,6 +22,10 @@ let currentMapName = null
 let coins = []
 let coinCount = 0
 
+// In-game notification
+let notifText = ''
+let notifTimer = 0
+
 // Fade transition
 let fadeAlpha = 0
 let fadeState = 'none' // 'none' | 'out' | 'loading' | 'in'
@@ -29,7 +33,52 @@ let pendingMap = null
 let pendingSpawn = null
 
 // Game state
-let gameState = 'menu' // 'menu' | 'playing' | 'gameover' | 'victory'
+let gameState = 'menu' // 'menu' | 'playing' | 'intro' | 'story' | 'gameover' | 'victory'
+
+// Story
+const COINS_NEEDED = 30
+let storyPage = 0
+let storyTime = 0
+const STORY_PAGES = [
+  {
+    bg: ['#0a0010', '#1a0030'],
+    lines: [
+      'V tichej dedine pod horou Kuroi',
+      'žil mladý ninja menom Kaito.',
+    ],
+    sub: 'Život bol pokojný... až do tej noci.',
+    delay: 0,
+  },
+  {
+    bg: ['#0d0000', '#300010'],
+    lines: [
+      'Temný samuraj Kage prepadol dedinu.',
+      'Uniesol Kaitovu milovanú — Yuki.',
+    ],
+    sub: 'Zanechal jediný odkaz na čiernom papieri...',
+    delay: 0,
+  },
+  {
+    bg: ['#0a0a00', '#1a1a00'],
+    lines: [
+      '"Prines mi 30 zlatých coinov,',
+      ' inak Yuki navždy zmizne v tme."',
+    ],
+    sub: '— Kage, Temný Samuraj',
+    delay: 0,
+    quote: true,
+  },
+  {
+    bg: ['#000d00', '#001a05'],
+    lines: [
+      'Kaito sa vydáva na cestu.',
+      'Zbiera coiny z porazených nepriateľov.',
+    ],
+    sub: 'Yuki čaká. Čas beží. Ide na to.',
+    delay: 0,
+    last: true,
+  },
+]
 let menuHasGame = false
 let menuBlinkTime = 0
 let hoveredButton = -1
@@ -324,6 +373,14 @@ const loadMap = async (mapName, spawnName) => {
 
 const startTransition = (targetMap, targetSpawn) => {
   if (fadeState !== 'none') return
+  if (targetMap === 'map3') {
+    if (coinCount >= COINS_NEEDED) {
+      notifText = `Máš ${coinCount} coinov. Choď zachrániť Yuki!`
+    } else {
+      notifText = `Máš len ${coinCount}/${COINS_NEEDED} coinov! Kage ťa nezoberie vážne.`
+    }
+    notifTimer = 4.0
+  }
   pendingMap = targetMap
   pendingSpawn = targetSpawn
   fadeState = 'out'
@@ -479,6 +536,165 @@ function drawMenu(deltaTime) {
   c.restore()
 }
 
+// ─── Intro & Story screens ────────────────────────────────────────────────────
+
+function drawIntro(deltaTime) {
+  const W = canvas.width / dpr
+  const H = canvas.height / dpr
+  menuBlinkTime += deltaTime
+  storyTime += deltaTime
+
+  c.save()
+  c.scale(dpr, dpr)
+
+  // Dark bg
+  c.fillStyle = '#000'
+  c.fillRect(0, 0, W, H)
+
+  // Falling petals (red/dark)
+  for (const p of menuPetals) {
+    p.x += p.vx; p.y += p.vy; p.rot += p.rotV
+    if (p.y > H + 10) { p.y = -10; p.x = Math.random() * W }
+    c.save()
+    c.globalAlpha = p.alpha * 0.5
+    c.translate(p.x, p.y)
+    c.rotate(p.rot)
+    c.fillStyle = '#cc2244'
+    c.beginPath()
+    c.ellipse(0, 0, p.size, p.size * 0.6, 0, 0, Math.PI * 2)
+    c.fill()
+    c.restore()
+  }
+
+  // Title
+  const titleSize = Math.max(28, Math.floor(H * 0.07))
+  c.shadowColor = '#ff3366'
+  c.shadowBlur = 20
+  c.fillStyle = '#ff3366'
+  c.font = `bold ${titleSize}px monospace`
+  c.textAlign = 'center'
+  c.fillText('NINJA TYCOON', W / 2, H * 0.22)
+  c.shadowBlur = 0
+
+  // Subtitle
+  c.fillStyle = '#ffcc00'
+  c.font = `bold ${Math.floor(titleSize * 0.45)}px monospace`
+  c.fillText('— Záchrana Yuki —', W / 2, H * 0.32)
+
+  // Story teaser box
+  c.fillStyle = 'rgba(0,0,0,0.6)'
+  const bw = W * 0.7, bh = H * 0.28
+  const bx = (W - bw) / 2, by = H * 0.42
+  c.fillRect(bx, by, bw, bh)
+  c.strokeStyle = '#cc2244'
+  c.lineWidth = 2
+  c.strokeRect(bx, by, bw, bh)
+
+  const lh = Math.max(13, Math.floor(H * 0.030))
+  c.fillStyle = '#fff'
+  c.font = `${lh}px monospace`
+  const lines = [
+    'Temný samuraj Kage uniesol tvoju milovanú.',
+    `Zbier ${COINS_NEEDED} coinov z porazených nepriateľov`,
+    'a vykúp ju zo zajatia na poslednej mape.',
+    '',
+    'Prejdi lesom, údolím a dostaň sa do jeho hradu.',
+  ]
+  lines.forEach((ln, i) => {
+    c.fillText(ln, W / 2, by + lh * 1.5 + i * (lh * 1.35))
+  })
+
+  // Coin goal reminder
+  c.fillStyle = '#ffcc00'
+  c.font = `bold ${Math.max(14, Math.floor(H * 0.034))}px monospace`
+  c.fillText(`Cieľ: ${COINS_NEEDED} 🪙  coinov`, W / 2, H * 0.80)
+
+  // Blink start
+  const blinkA = (Math.sin(menuBlinkTime * 2.5) + 1) / 2
+  c.globalAlpha = 0.4 + blinkA * 0.6
+  c.fillStyle = '#aaa'
+  c.font = `bold ${Math.max(11, Math.floor(H * 0.024))}px monospace`
+  c.fillText('Stlač ENTER pre začatie', W / 2, H * 0.90)
+  c.globalAlpha = 1
+  c.textAlign = 'left'
+  c.restore()
+}
+
+function drawStory(deltaTime) {
+  const W = canvas.width / dpr
+  const H = canvas.height / dpr
+  menuBlinkTime += deltaTime
+  storyTime += deltaTime
+
+  const page = STORY_PAGES[storyPage]
+  c.save()
+  c.scale(dpr, dpr)
+
+  const grad = c.createLinearGradient(0, 0, 0, H)
+  grad.addColorStop(0, page.bg[0])
+  grad.addColorStop(1, page.bg[1])
+  c.fillStyle = grad
+  c.fillRect(0, 0, W, H)
+
+  // petals
+  for (const p of menuPetals) {
+    p.x += p.vx * 0.5; p.y += p.vy * 0.5; p.rot += p.rotV
+    if (p.y > H + 10) { p.y = -10; p.x = Math.random() * W }
+    c.save()
+    c.globalAlpha = p.alpha * 0.4
+    c.translate(p.x, p.y)
+    c.rotate(p.rot)
+    c.fillStyle = page.quote ? '#aaaa00' : '#cc3355'
+    c.beginPath()
+    c.ellipse(0, 0, p.size, p.size * 0.6, 0, 0, Math.PI * 2)
+    c.fill()
+    c.restore()
+  }
+
+  // Page number dots
+  STORY_PAGES.forEach((_, i) => {
+    c.beginPath()
+    c.arc(W / 2 + (i - STORY_PAGES.length / 2 + 0.5) * 22, H * 0.12, 4, 0, Math.PI * 2)
+    c.fillStyle = i === storyPage ? '#fff' : '#555'
+    c.fill()
+  })
+
+  // Main lines
+  const lSize = Math.max(18, Math.floor(H * 0.048))
+  c.textAlign = 'center'
+  c.fillStyle = page.quote ? '#ffee44' : '#fff'
+  c.font = `${page.quote ? 'italic ' : ''}bold ${lSize}px monospace`
+  c.shadowColor = '#000'
+  c.shadowBlur = 8
+  page.lines.forEach((ln, i) => {
+    c.fillText(ln, W / 2, H * 0.38 + i * (lSize * 1.6))
+  })
+  c.shadowBlur = 0
+
+  // Sub line
+  c.fillStyle = '#aaa'
+  c.font = `${Math.max(12, Math.floor(H * 0.028))}px monospace`
+  c.fillText(page.sub, W / 2, H * 0.65)
+
+  // Coin reminder on last page
+  if (page.last) {
+    c.fillStyle = '#ffcc00'
+    c.font = `bold ${Math.max(14, Math.floor(H * 0.036))}px monospace`
+    c.fillText(`Zbier ${COINS_NEEDED} coinov !`, W / 2, H * 0.76)
+  }
+
+  // Nav hint
+  const blinkA = (Math.sin(menuBlinkTime * 2.5) + 1) / 2
+  c.globalAlpha = 0.4 + blinkA * 0.6
+  c.fillStyle = '#888'
+  c.font = `${Math.max(10, Math.floor(H * 0.022))}px monospace`
+  const hint = storyPage < STORY_PAGES.length - 1 ? 'ENTER — ďalej' : 'ENTER — hrať!'
+  c.fillText(hint, W / 2, H * 0.90)
+  c.globalAlpha = 1
+  c.textAlign = 'left'
+  c.restore()
+}
+
 function drawGameOver(deltaTime) {
   const W = canvas.width / dpr
   const H = canvas.height / dpr
@@ -551,7 +767,32 @@ function drawVictory(deltaTime) {
   c.fillStyle = '#ffd700'
   c.font = `bold ${Math.max(36, Math.floor(H * 0.1))}px monospace`
   c.textAlign = 'center'
-  c.fillText('VILLAGE SAVED!', W / 2, H / 2)
+  const won = coinCount >= COINS_NEEDED
+  c.fillText(won ? 'YUKI JE SLOBODNÁ!' : 'KAGE PORAZENÝ...', W / 2, H * 0.35)
+  c.shadowBlur = 0
+
+  // Story ending text
+  c.fillStyle = '#fff'
+  c.font = `${Math.max(13, Math.floor(H * 0.030))}px monospace`
+  if (won) {
+    const ending = [
+      'Kaito porazil Kageho a prinesl 30 coinov.',
+      'Yuki bola oslobodená.',
+      '',
+      'Dedina sa opäť radovala.',
+      'A Kaito... konečne vydýchol.',
+    ]
+    ending.forEach((ln, i) => c.fillText(ln, W / 2, H * 0.50 + i * Math.floor(H * 0.048)))
+  } else {
+    const ending = [
+      `Zozbierané coiny: ${coinCount} / ${COINS_NEEDED}`,
+      '',
+      'Kage bol porazený, ale bez výkupného',
+      'Yuki zmizla v tme navždy...',
+    ]
+    ending.forEach((ln, i) => c.fillText(ln, W / 2, H * 0.50 + i * Math.floor(H * 0.048)))
+  }
+  // dummy fillText to keep structure — original was here
   c.shadowBlur = 0
 
   const blinkA = (Math.sin(menuBlinkTime * 2) + 1) / 2
@@ -574,11 +815,14 @@ function resetHearts() {
 function startNewGame() {
   resetHearts()
   resetKeys()
+  coinCount = 0
+  storyPage = 0
+  storyTime = 0
   menuHasGame = true
   canvas.style.cursor = 'default'
   hoveredButton = -1
-  gameState = 'playing'
-  loadMap('map1', 'default')
+  gameState = 'intro'
+  initMenuPetals()
 }
 
 function resetKeys() {
@@ -640,7 +884,21 @@ canvas.addEventListener('click', (e) => {
 window.addEventListener('keydown', (e) => {
   const ignore = ['Control', 'Alt', 'Shift', 'Meta', 'Tab', 'F1', 'F2', 'F3',
     'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']
-  if (gameState === 'gameover' && e.key === 'Enter') {
+  if (gameState === 'intro' && e.key === 'Enter') {
+    storyPage = 0
+    storyTime = 0
+    menuBlinkTime = 0
+    initMenuPetals()
+    gameState = 'story'
+  } else if (gameState === 'story' && e.key === 'Enter') {
+    if (storyPage < STORY_PAGES.length - 1) {
+      storyPage++
+      menuBlinkTime = 0
+    } else {
+      gameState = 'playing'
+      loadMap('map1', 'default')
+    }
+  } else if (gameState === 'gameover' && e.key === 'Enter') {
     resetHearts()
     gameState = 'menu'
     initMenuPetals()
@@ -763,6 +1021,12 @@ function playingUpdate(deltaTime) {
           })
         }
         monsters.splice(i, 1)
+        if (currentMapName === 'map3' && monsters.length === 0) {
+          setTimeout(() => {
+            gameState = 'victory'
+            initMenuPetals()
+          }, 800)
+        }
       }
     }
 
@@ -897,6 +1161,35 @@ function playingUpdate(deltaTime) {
   c.textBaseline = 'alphabetic'
   c.restore()
 
+  // In-game notification banner
+  if (notifTimer > 0) {
+    notifTimer -= deltaTime
+    const W2 = canvas.width / dpr
+    const H2 = canvas.height / dpr
+    const alpha = Math.min(1, notifTimer * 2) * Math.min(1, (notifTimer > 0.5 ? 1 : notifTimer * 2))
+    c.save()
+    c.scale(dpr, dpr)
+    c.globalAlpha = alpha
+    const nSize = Math.max(12, Math.floor(H2 * 0.030))
+    const nW = W2 * 0.7
+    const nH = nSize * 2.4
+    const nX = (W2 - nW) / 2
+    const nY = H2 * 0.08
+    c.fillStyle = coinCount >= COINS_NEEDED ? 'rgba(0,80,0,0.85)' : 'rgba(80,0,0,0.85)'
+    c.fillRect(nX, nY, nW, nH)
+    c.strokeStyle = coinCount >= COINS_NEEDED ? '#44ff44' : '#ff4444'
+    c.lineWidth = 2
+    c.strokeRect(nX, nY, nW, nH)
+    c.fillStyle = '#fff'
+    c.font = `bold ${nSize}px monospace`
+    c.textAlign = 'center'
+    c.textBaseline = 'middle'
+    c.fillText(notifText, W2 / 2, nY + nH / 2)
+    c.textBaseline = 'alphabetic'
+    c.textAlign = 'left'
+    c.restore()
+  }
+
   // Fade overlay
   if (fadeAlpha > 0) {
     c.save()
@@ -914,6 +1207,8 @@ function animate() {
   lastTime = currentTime
 
   if (gameState === 'menu') drawMenu(deltaTime)
+  else if (gameState === 'intro') drawIntro(deltaTime)
+  else if (gameState === 'story') drawStory(deltaTime)
   else if (gameState === 'gameover') drawGameOver(deltaTime)
   else if (gameState === 'victory') drawVictory(deltaTime)
   else playingUpdate(deltaTime)
