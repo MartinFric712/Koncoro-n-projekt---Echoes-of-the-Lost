@@ -37,9 +37,9 @@ let menuBg = null
 // ─── Map configs ──────────────────────────────────────────────────────────────
 
 const monsterSprites = {
-  walkDown:  { x: 0,  y: 0, width: 16, height: 16, frameCount: 4 },
-  walkUp:    { x: 16, y: 0, width: 16, height: 16, frameCount: 4 },
-  walkLeft:  { x: 32, y: 0, width: 16, height: 16, frameCount: 4 },
+  walkDown: { x: 0, y: 0, width: 16, height: 16, frameCount: 4 },
+  walkUp: { x: 16, y: 0, width: 16, height: 16, frameCount: 4 },
+  walkLeft: { x: 32, y: 0, width: 16, height: 16, frameCount: 4 },
   walkRight: { x: 48, y: 0, width: 16, height: 16, frameCount: 4 },
 }
 
@@ -67,35 +67,35 @@ const mapConfigs = {
     },
     collisionsData: collisions,
     tilesets: {
-      l_Terrain:                 { imageUrl: './images/terrain.png',    tileSize: 16 },
-      l_Front_Renders:           { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Front_Renders_2:         { imageUrl: './images/characters.png',  tileSize: 16 },
-      l_Front_Renders_3:         { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Trees_1:                 { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Trees_2:                 { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Trees_3:                 { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Trees_4:                 { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Landscape_Decorations:   { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Terrain: { imageUrl: './images/terrain.png', tileSize: 16 },
+      l_Front_Renders: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Front_Renders_2: { imageUrl: './images/characters.png', tileSize: 16 },
+      l_Front_Renders_3: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Trees_1: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Trees_2: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Trees_3: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Trees_4: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Landscape_Decorations: { imageUrl: './images/decorations.png', tileSize: 16 },
       l_Landscape_Decorations_2: { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Houses:                  { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_House_Decorations:       { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Characters:              { imageUrl: './images/characters.png',  tileSize: 16 },
-      l_Collisions:              { imageUrl: './images/characters.png',  tileSize: 16 },
+      l_Houses: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_House_Decorations: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Characters: { imageUrl: './images/characters.png', tileSize: 16 },
+      l_Collisions: { imageUrl: './images/characters.png', tileSize: 16 },
     },
     spawnPoints: {
-      default:    { x: 100, y: 100 },
+      default: { x: 100, y: 100 },
       fromForest: { x: 380, y: 80, facing: 'down' },
     },
     exits: [
       { x: 376, y: 16, width: 48, height: 32, targetMap: 'map2', targetSpawn: 'fromVillage' },
     ],
     monsters: [
-      { x: 200, y: 150, size: 15, imageSrc: './images/bamboo.png',  sprites: monsterSprites },
-      { x: 300, y: 150, size: 15, imageSrc: './images/dragon.png',  sprites: monsterSprites },
-      { x: 48,  y: 400, size: 15, imageSrc: './images/bamboo.png',  sprites: monsterSprites },
-      { x: 288, y: 416, size: 15, imageSrc: './images/bamboo.png',  sprites: monsterSprites },
-      { x: 112, y: 416, size: 15, imageSrc: './images/dragon.png',  sprites: monsterSprites },
-      { x: 400, y: 400, size: 15, imageSrc: './images/dragon.png',  sprites: monsterSprites },
+      { x: 200, y: 150, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 300, y: 150, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 48, y: 400, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 288, y: 416, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
+      { x: 112, y: 416, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
+      { x: 400, y: 400, size: 15, imageSrc: './images/dragon.png', sprites: monsterSprites },
     ],
   },
   map2: {
@@ -114,23 +114,23 @@ const mapConfigs = {
     },
     collisionsData: m2_collisions,
     tilesets: {
-      m2_grass:                              { imageUrl: './images/terrain.png',     tileSize: 16 },
-      m2_detailed_grass_and_water_with_rocks: { imageUrl: './images/terrain.png',     tileSize: 16 },
-      m2_details:                            { imageUrl: './images/terrain.png',     tileSize: 16 },
-      m2_l_foliage_paths:                    { imageUrl: './images/decorations.png', tileSize: 16 },
-      m2_treess_and_building:                { imageUrl: './images/decorations.png', tileSize: 16 },
-      m2_l_trees_flowers:                    { imageUrl: './images/decorations.png', tileSize: 16 },
-      m2_folliage_in_forest:                 { imageUrl: './images/decorations.png', tileSize: 16 },
+      m2_grass: { imageUrl: './images/terrain.png', tileSize: 16 },
+      m2_detailed_grass_and_water_with_rocks: { imageUrl: './images/terrain.png', tileSize: 16 },
+      m2_details: { imageUrl: './images/terrain.png', tileSize: 16 },
+      m2_l_foliage_paths: { imageUrl: './images/decorations.png', tileSize: 16 },
+      m2_treess_and_building: { imageUrl: './images/decorations.png', tileSize: 16 },
+      m2_l_trees_flowers: { imageUrl: './images/decorations.png', tileSize: 16 },
+      m2_folliage_in_forest: { imageUrl: './images/decorations.png', tileSize: 16 },
     },
     spawnPoints: {
-      default:     { x: 400, y: 500 },
+      default: { x: 400, y: 500 },
       fromVillage: { x: 400, y: 500 },
-      fromMap3:    { x: 760, y: 36, facing: 'left' },
+      fromMap3: { x: 760, y: 36, facing: 'left' },
     },
     exits: [
-      { x: 0,   y: 300, width: 16, height: 64, targetMap: 'map1', targetSpawn: 'fromForest' },
+      { x: 0, y: 300, width: 16, height: 64, targetMap: 'map1', targetSpawn: 'fromForest' },
       { x: 780, y: 300, width: 16, height: 48, targetMap: 'map1', targetSpawn: 'fromForest' },
-      { x: 780, y: 16,  width: 16, height: 64, targetMap: 'map3', targetSpawn: 'fromMap2'  },
+      { x: 780, y: 16, width: 16, height: 64, targetMap: 'map3', targetSpawn: 'fromMap2' },
     ],
     monsters: [
       { x: 200, y: 200, size: 15, imageSrc: './images/bamboo.png', sprites: monsterSprites },
@@ -147,10 +147,10 @@ const mapConfigs = {
     cols: 60,
     layers: {
       l_Ground,
-      l_Fence,
       l_Enviroment,
-      l_Steps,
       l_Buildnigs,
+      l_Fence,
+      l_Steps,
       l_Decorations,
     },
     frontLayers: {
@@ -159,18 +159,18 @@ const mapConfigs = {
     },
     collisionsData: m3_collisions,
     tilesets: {
-      l_Ground:       { imageUrl: './images/terrain.png',     tileSize: 16 },
-      l_Fence:        { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Enviroment:   { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Decorations:  { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Steps:        { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Buildnigs:    { imageUrl: './images/decorations.png', tileSize: 16 },
-      l_Roof:         { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Ground: { imageUrl: './images/terrain.png', tileSize: 16 },
+      l_Fence: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Enviroment: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Decorations: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Steps: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Buildnigs: { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Roof: { imageUrl: './images/decorations.png', tileSize: 16 },
       l_Building_Front: { imageUrl: './images/decorations.png', tileSize: 16 },
     },
     spawnPoints: {
-      default:  { x: 80,  y: 300, facing: 'right' },
-      fromMap2: { x: 80,  y: 300, facing: 'right' },
+      default: { x: 80, y: 300, facing: 'right' },
+      fromMap2: { x: 80, y: 300, facing: 'right' },
     },
     exits: [
       { x: 0, y: 280, width: 16, height: 64, targetMap: 'map2', targetSpawn: 'fromMap3' },
@@ -376,11 +376,11 @@ function drawSakuraTree(ctx, x, baseY, trunkW, trunkH, crownR) {
   const cx = x
   const cy = baseY - trunkH
   const offsets = [
-    { dx: 0,           dy: -crownR * 0.8 },
+    { dx: 0, dy: -crownR * 0.8 },
     { dx: -crownR * 0.55, dy: -crownR * 0.35 },
-    { dx:  crownR * 0.55, dy: -crownR * 0.35 },
+    { dx: crownR * 0.55, dy: -crownR * 0.35 },
     { dx: -crownR * 0.25, dy: -crownR * 1.15 },
-    { dx:  crownR * 0.25, dy: -crownR * 1.05 },
+    { dx: crownR * 0.25, dy: -crownR * 1.05 },
   ]
   const colors = ['#ffb7c5', '#ff8fa3', '#ffccd5']
   offsets.forEach((off, i) => {
@@ -641,7 +641,7 @@ canvas.addEventListener('click', (e) => {
 
 window.addEventListener('keydown', (e) => {
   const ignore = ['Control', 'Alt', 'Shift', 'Meta', 'Tab', 'F1', 'F2', 'F3',
-                  'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']
+    'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']
   if (gameState === 'menu') {
     if (!ignore.includes(e.key)) startNewGame()
   } else if (gameState === 'gameover' && e.key === 'Enter') {
@@ -697,10 +697,10 @@ function playingUpdate(deltaTime) {
   if (fadeState === 'none') {
     for (const exit of mapConfigs[currentMapName].exits) {
       if (
-        player.x + player.width  >= exit.x &&
-        player.x                 <= exit.x + exit.width &&
+        player.x + player.width >= exit.x &&
+        player.x <= exit.x + exit.width &&
         player.y + player.height >= exit.y &&
-        player.y                 <= exit.y + exit.height
+        player.y <= exit.y + exit.height
       ) {
         startTransition(exit.targetMap, exit.targetSpawn)
         break
@@ -754,10 +754,10 @@ function playingUpdate(deltaTime) {
     }
 
     if (
-      player.x + player.width  >= monster.x &&
-      player.x                 <= monster.x + monster.width &&
+      player.x + player.width >= monster.x &&
+      player.x <= monster.x + monster.width &&
       player.y + player.height >= monster.y &&
-      player.y                 <= monster.y + monster.height &&
+      player.y <= monster.y + monster.height &&
       !player.isInvincible
     ) {
       player.receiveHit()
@@ -801,17 +801,17 @@ function animate() {
   const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.05)
   lastTime = currentTime
 
-  if      (gameState === 'menu')     drawMenu(deltaTime)
+  if (gameState === 'menu') drawMenu(deltaTime)
   else if (gameState === 'gameover') drawGameOver(deltaTime)
-  else if (gameState === 'victory')  drawVictory(deltaTime)
-  else                               playingUpdate(deltaTime)
+  else if (gameState === 'victory') drawVictory(deltaTime)
+  else playingUpdate(deltaTime)
 
   requestAnimationFrame(animate)
 }
 
 // ─── Start ─────────────────────────────────────────────────────────────────────
 
-;(async () => {
+; (async () => {
   menuBg = await loadImage('./images/menu.png')
   initMenuPetals()
   lastTime = performance.now()
