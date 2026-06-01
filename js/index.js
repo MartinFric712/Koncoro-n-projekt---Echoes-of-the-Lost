@@ -149,11 +149,12 @@ const mapConfigs = {
       l_Ground,
       l_Fence,
       l_Enviroment,
-      l_Decorations,
       l_Steps,
       l_Buildnigs,
+      l_Decorations,
     },
     frontLayers: {
+      l_Building_Front,
       l_Roof,
     },
     collisionsData: m3_collisions,
@@ -165,6 +166,7 @@ const mapConfigs = {
       l_Steps:        { imageUrl: './images/decorations.png', tileSize: 16 },
       l_Buildnigs:    { imageUrl: './images/decorations.png', tileSize: 16 },
       l_Roof:         { imageUrl: './images/decorations.png', tileSize: 16 },
+      l_Building_Front: { imageUrl: './images/decorations.png', tileSize: 16 },
     },
     spawnPoints: {
       default:  { x: 80,  y: 300, facing: 'right' },
