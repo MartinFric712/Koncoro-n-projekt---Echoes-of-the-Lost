@@ -18,6 +18,10 @@ let frontRendersCanvas = null
 let monsters = []
 let currentMapName = null
 
+// Coins
+let coins = []
+let coinCount = 0
+
 // Fade transition
 let fadeAlpha = 0
 let fadeState = 'none' // 'none' | 'out' | 'loading' | 'in'
@@ -310,6 +314,7 @@ const loadMap = async (mapName, spawnName) => {
   }
 
   leafs.length = 0
+  coins.length = 0
   elapsedTime = 0
   worldTime = 0
   lastTime = performance.now()
@@ -348,7 +353,7 @@ function getButtonRects() {
   const W = canvas.width / dpr
   const H = canvas.height / dpr
   const BTN_W = W * 0.322
-  const startX = W * 0.637
+  const startX = W * 0.678
   const planks = [
     { y: H * 0.430, h: H * 0.065 },
     { y: H * 0.547, h: H * 0.060 },
@@ -741,7 +746,24 @@ function playingUpdate(deltaTime) {
     ) {
       monster.receiveHit()
       player.hasHitEnemy = true
-      if (monster.health <= 0) monsters.splice(i, 1)
+      if (monster.health <= 0) {
+        // Drop 1-3 coins
+        const drop = 1 + Math.floor(Math.random() * 3)
+        for (let d = 0; d < drop; d++) {
+          coins.push({
+            x: monster.x + monster.width / 2 + (Math.random() - 0.5) * 16,
+            y: monster.y + monster.height / 2 + (Math.random() - 0.5) * 16,
+            vy: -0.8 - Math.random() * 0.8,
+            vx: (Math.random() - 0.5) * 1.2,
+            gravity: 0.15,
+            bobTime: Math.random() * Math.PI * 2,
+            landed: false,
+            collected: false,
+            alpha: 1,
+          })
+        }
+        monsters.splice(i, 1)
+      }
     }
 
     if (
@@ -768,12 +790,111 @@ function playingUpdate(deltaTime) {
     if (leaf.alpha <= 0) leafs.splice(i, 1)
   }
 
+  // Coins — update, draw, pickup
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const coin = coins[i]
+    if (coin.collected) {
+      coin.alpha -= 0.08
+      if (coin.alpha <= 0) { coins.splice(i, 1); continue }
+    } else {
+      if (!coin.landed) {
+        coin.vy += coin.gravity
+        coin.x += coin.vx
+        coin.y += coin.vy
+        coin.vx *= 0.92
+        if (coin.vy > 0.5 && coin.vy < 0.7) {
+          coin.landed = true
+          coin.vy = 0
+          coin.vx = 0
+        }
+      }
+      coin.bobTime += 0.05
+      // Pickup detection
+      const cx = coin.x, cy = coin.y, cr = 5
+      if (
+        player.x < cx + cr && player.x + player.width > cx - cr &&
+        player.y < cy + cr && player.y + player.height > cy - cr
+      ) {
+        coin.collected = true
+        coinCount++
+      }
+    }
+    // Draw pixel art coin
+    const cs = c
+    const px = Math.round(coin.x)
+    const py = Math.round(coin.y + (coin.collected ? 0 : Math.sin(coin.bobTime) * 1.2))
+    cs.save()
+    cs.globalAlpha = coin.alpha
+    // Shadow
+    cs.fillStyle = 'rgba(0,0,0,0.25)'
+    cs.beginPath()
+    cs.ellipse(px, py + 6, 4, 2, 0, 0, Math.PI * 2)
+    cs.fill()
+    // Coin body
+    cs.fillStyle = '#c8860a'
+    cs.fillRect(px - 4, py - 2, 8, 6)
+    cs.fillRect(px - 2, py - 4, 4, 10)
+    // Inner gold
+    cs.fillStyle = '#f5c518'
+    cs.fillRect(px - 3, py - 1, 6, 4)
+    cs.fillRect(px - 1, py - 3, 2, 8)
+    // Highlight
+    cs.fillStyle = '#ffe87a'
+    cs.fillRect(px - 2, py - 2, 2, 2)
+    cs.fillRect(px - 2, py - 2, 1, 3)
+    // Dark edge
+    cs.fillStyle = '#7a4f00'
+    cs.fillRect(px - 4, py - 2, 1, 6)
+    cs.fillRect(px + 3, py - 2, 1, 6)
+    cs.fillRect(px - 2, py - 4, 4, 1)
+    cs.fillRect(px - 2, py + 5, 4, 1)
+    cs.restore()
+  }
+
   c.restore()
 
-  // HUD — fixed scale independent of map zoom
+  // HUD — hearts top-left, slightly smaller
   c.save()
-  c.scale(3 * dpr, 3 * dpr)
+  const heartScale = 4 * dpr
+  c.scale(heartScale, heartScale)
+  const heartSpacing = 22
+  const heartMargin = 8
+  hearts.forEach((heart, i) => {
+    heart.x = heartMargin + i * heartSpacing
+    heart.y = heartMargin
+  })
   hearts.forEach((heart) => heart.draw(c))
+  c.restore()
+
+  // Coin counter HUD — top-right
+  c.save()
+  const coinSize = Math.floor(Math.min(canvas.width, canvas.height) * 0.038)
+  const hudX = canvas.width - coinSize * 5.5
+  const hudY = 20 * dpr
+  // Coin icon (pixel art, small)
+  const s = coinSize
+  c.fillStyle = '#c8860a'
+  c.fillRect(hudX, hudY - s * 0.4, s, s * 0.8)
+  c.fillRect(hudX + s * 0.25, hudY - s * 0.6, s * 0.5, s * 1.2)
+  c.fillStyle = '#f5c518'
+  c.fillRect(hudX + s * 0.12, hudY - s * 0.2, s * 0.75, s * 0.4)
+  c.fillRect(hudX + s * 0.37, hudY - s * 0.45, s * 0.25, s * 0.9)
+  c.fillStyle = '#ffe87a'
+  c.fillRect(hudX + s * 0.12, hudY - s * 0.2, s * 0.25, s * 0.25)
+  c.fillStyle = '#7a4f00'
+  c.fillRect(hudX, hudY - s * 0.4, s * 0.12, s * 0.8)
+  c.fillRect(hudX + s * 0.88, hudY - s * 0.4, s * 0.12, s * 0.8)
+  // Counter text
+  c.fillStyle = '#fff'
+  c.font = `bold ${Math.round(s * 1.1)}px monospace`
+  c.shadowColor = '#000'
+  c.shadowOffsetX = 1 * dpr
+  c.shadowOffsetY = 1 * dpr
+  c.shadowBlur = 0
+  c.textBaseline = 'middle'
+  c.fillText(`x ${coinCount}`, hudX + s * 1.4, hudY)
+  c.shadowColor = 'transparent'
+  c.textBaseline = 'alphabetic'
   c.restore()
 
   // Fade overlay
