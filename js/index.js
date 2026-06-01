@@ -108,6 +108,7 @@ const mapConfigs = {
       m2_treess_and_building,
       m2_l_trees_flowers,
       m2_details,
+      m2_l_Characters,
     },
     frontLayers: {
       m2_folliage_in_forest,
@@ -121,6 +122,7 @@ const mapConfigs = {
       m2_treess_and_building: { imageUrl: './images/decorations.png', tileSize: 16 },
       m2_l_trees_flowers: { imageUrl: './images/decorations.png', tileSize: 16 },
       m2_folliage_in_forest: { imageUrl: './images/decorations.png', tileSize: 16 },
+      m2_l_Characters: { imageUrl: './Images2/characters.png', tileSize: 16 },
     },
     spawnPoints: {
       fromVillage: { x: 575, y: 600 },
@@ -150,6 +152,7 @@ const mapConfigs = {
       l_Fence,
       l_Steps,
       l_Decorations,
+      m3_l_Characters,
     },
     frontLayers: {
       l_Building_Front,
@@ -165,6 +168,7 @@ const mapConfigs = {
       l_Buildnigs: { imageUrl: './images/decorations.png', tileSize: 16 },
       l_Roof: { imageUrl: './images/decorations.png', tileSize: 16 },
       l_Building_Front: { imageUrl: './images/decorations.png', tileSize: 16 },
+      m3_l_Characters: { imageUrl: './images2/characters.png', tileSize: 16 },
     },
     spawnPoints: {
       fromMap2: { x: 785, y: 900, facing: 'down' },
